@@ -51,6 +51,9 @@ create trigger zz_record_legal_consent_insert after insert on auth.users
 create trigger zz_record_legal_consent_update after update of raw_user_meta_data on auth.users
   for each row execute procedure public.record_legal_consent();
 
+revoke all on function public.handle_new_user() from public, anon, authenticated;
+revoke all on function public.record_legal_consent() from public, anon, authenticated;
+
 create table public.watch_saves (
   user_id uuid not null references public.profiles(id) on delete cascade,
   media_type text not null check (media_type in ('movie','tv')),
