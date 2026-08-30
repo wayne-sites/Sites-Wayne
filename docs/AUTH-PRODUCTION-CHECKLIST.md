@@ -51,6 +51,43 @@ npm run test:e2e:auth:staging
 
 Esse smoke test real cobre login, sessão, rota protegida, cookies, logout e cache. Cadastro, abertura da confirmação, recebimento da recuperação e troca de senha continuam na homologação manual abaixo porque dependem da caixa de e-mail real.
 
+## Gate protegido no GitHub
+
+O workflow `.github/workflows/auth-staging-smoke.yml` permite executar a parte automatizada da homologação somente por `workflow_dispatch`, depois que o arquivo existir na branch padrão.
+
+Configure um GitHub Environment chamado `auth-staging`:
+
+- variável `AUTH_STAGING_BASE_URL` apontando para a URL HTTPS de staging;
+- secrets `AUTH_STAGING_EMAIL` e `AUTH_STAGING_PASSWORD` de uma conta exclusiva de teste;
+- aprovação obrigatória e restrição de branches, quando o plano do repositório permitir;
+- nenhuma credencial compartilhada com Production.
+
+O workflow falha quando falta configuração e recusa explicitamente `https://sites-wayne.vercel.app`, evitando que o smoke test de staging seja executado contra a produção. Ele não cria conta, não altera migrations e não ativa `AUTH_ENABLED`.
+
+## Data API e privilégios explícitos
+
+Projetos Supabase novos podem criar tabelas em `public` sem exposição automática à Data API. RLS define quais linhas podem ser acessadas, mas não substitui os privilégios SQL de tabela.
+
+Antes de homologar, consulte somente leitura:
+
+```sql
+select grantee, table_name, privilege_type
+from information_schema.role_table_grants
+where table_schema = 'public'
+  and grantee in ('anon', 'authenticated')
+order by table_name, grantee, privilege_type;
+```
+
+Se os privilégios necessários estiverem ausentes:
+
+1. confirme primeiro quais migrations já existem no banco remoto;
+2. gere uma migration nova com `supabase migration new expose_required_data_api_tables`;
+3. conceda somente `select`, `insert`, `update` ou `delete` realmente exigidos por cada fluxo;
+4. não use `grant all` como atalho;
+5. repita os testes com usuário A, usuário B e anônimo.
+
+Referência: [Tables not exposed to Data and GraphQL API automatically](https://supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and-graphql-api-automatically).
+
 ## Banco Supabase
 
 Não cole todas as migrations no SQL Editor sem antes descobrir o estado do banco.
