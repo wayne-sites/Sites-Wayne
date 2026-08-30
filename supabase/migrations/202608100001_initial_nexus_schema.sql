@@ -156,7 +156,11 @@ create policy "users read own reports" on public.reports for select using(report
 create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path='' as $$
 begin
   insert into public.profiles(id,username,display_name)
-  values(new.id,'user_'||substr(replace(new.id::text,'-',''),1,10),coalesce(new.raw_user_meta_data->>'display_name','Novo membro'));
+  values(
+    new.id,
+    'user_' || rtrim(translate(encode(uuid_send(new.id),'base64'), '+/', '-_'), '='),
+    coalesce(new.raw_user_meta_data->>'display_name','Novo membro')
+  );
   return new;
 end; $$;
 create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.handle_new_user();
