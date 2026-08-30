@@ -23,7 +23,11 @@ language plpgsql security definer set search_path=''
 as $$
 begin
   insert into public.profiles(id,username,display_name)
-  values(new.id,'user_'||substr(replace(new.id::text,'-',''),1,10),coalesce(new.raw_user_meta_data->>'display_name','Novo membro'));
+  values(
+    new.id,
+    'user_' || rtrim(translate(encode(uuid_send(new.id),'base64'), '+/', '-_'), '='),
+    coalesce(new.raw_user_meta_data->>'display_name','Novo membro')
+  );
   return new;
 end;
 $$;
