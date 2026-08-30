@@ -16,10 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: auth-staging
-    env:
-      AUTH_STAGING_BASE_URL: ${{ vars.AUTH_STAGING_BASE_URL }}
-      AUTH_STAGING_EMAIL: ${{ secrets.AUTH_STAGING_EMAIL }}
-      AUTH_STAGING_PASSWORD: ${{ secrets.AUTH_STAGING_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,9 +23,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22.13.0
-          cache: npm
-      - name: Validate staging configuration
+      - name: Validate configuration and run smoke test
         shell: bash
+        env:
+          AUTH_STAGING_BASE_URL: ${{ vars.AUTH_STAGING_BASE_URL }}
+          AUTH_STAGING_EMAIL: ${{ secrets.AUTH_STAGING_EMAIL }}
+          AUTH_STAGING_PASSWORD: ${{ secrets.AUTH_STAGING_PASSWORD }}
         run: |
           missing=()
           [[ -n "$AUTH_STAGING_BASE_URL" ]] || missing+=("AUTH_STAGING_BASE_URL")
@@ -50,5 +49,4 @@ jobs:
               exit 1
               ;;
           esac
-      - run: npm ci
-      - run: npm run test:e2e:auth:staging
+          npm run test:e2e:auth:staging
