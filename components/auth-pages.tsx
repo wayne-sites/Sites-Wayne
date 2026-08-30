@@ -1,17 +1,22 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { ModuleShell } from "@/components/module-shell";
 import { NEW_PASSWORD_MIN_LENGTH, safeNextPath } from "@/lib/auth-security";
 import { fetchWithClientTimeout } from "@/lib/client/http";
 
 type Mode = "login" | "signup" | "recover";
 
-export function AuthPage({ mode, ready, providers = [], nextPath = "/conta" }: { mode: Mode; ready: boolean; providers?: string[]; nextPath?: string }) {
+export function AuthPage({ mode, ready, providers = [], nextPath = "/conta", captchaSiteKey = "" }: { mode: Mode; ready: boolean; providers?: string[]; nextPath?: string; captchaSiteKey?: string }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
   const [oauthConsent, setOAuthConsent] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const captchaRef = useRef<TurnstileInstance | null>(null);
   const copy = mode === "login"
     ? { eyebrow: "SUA CONTA NEXUS", title: "Continue de onde parou.", heading: "Entrar no Nexus", action: "Entrar" }
     : mode === "signup"
@@ -20,20 +25,28 @@ export function AuthPage({ mode, ready, providers = [], nextPath = "/conta" }: {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setLoading(true); setMessage(""); setError(false);
+    if (!captchaToken) {
+      setLoading(false); setError(true); setMessage("Confirme a proteção anti-bot antes de continuar.");
+      return;
+    }
     const values = new FormData(event.currentTarget);
-    const body = Object.fromEntries(values.entries());
+    const body = { ...Object.fromEntries(values.entries()), captchaToken };
     try {
       const response = await fetchWithClientTimeout(`/api/auth/${mode === "signup" ? "signup" : mode === "recover" ? "recover" : "login"}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json() as { error?: string; message?: string; confirmationRequired?: boolean };
       if (!response.ok) throw new Error(data.error || "Não foi possível continuar.");
-      if (mode === "login") window.location.assign(safeNextPath(nextPath));
-      else if (mode === "signup" && !data.confirmationRequired) window.location.assign("/conta");
+      if (mode === "login") router.replace(safeNextPath(nextPath));
+      else if (mode === "signup" && !data.confirmationRequired) router.replace("/conta");
       else setMessage(mode === "signup" ? "Conta criada. Verifique seu e-mail para confirmar o acesso." : data.message || "Confira seu e-mail.");
     } catch (caught) {
       setError(true);
       setMessage(caught instanceof Error && caught.message !== "client_request_timeout" ? caught.message : "A conexão demorou demais. Tente novamente.");
     }
-    finally { setLoading(false); }
+    finally {
+      captchaRef.current?.reset();
+      setCaptchaToken("");
+      setLoading(false);
+    }
   }
 
   return <ModuleShell active="" eyebrow={copy.eyebrow} title={copy.title} description="Autenticação protegida pelo Supabase, com sessão em cookies seguros no servidor.">
@@ -42,7 +55,8 @@ export function AuthPage({ mode, ready, providers = [], nextPath = "/conta" }: {
       <label htmlFor="email">E-mail</label><input id="email" name="email" type="email" autoComplete="email" placeholder="voce@email.com" required/>
       {mode !== "recover" && <><label htmlFor="password">Senha</label><input id="password" name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={mode === "signup" ? NEW_PASSWORD_MIN_LENGTH : 8} maxLength={128} placeholder={mode === "signup" ? `Mínimo de ${NEW_PASSWORD_MIN_LENGTH} caracteres` : "Sua senha"} required/></>}
       {mode === "signup" && <label className="auth-consent"><input type="checkbox" name="acceptedTerms" value="true" required/><span>Li e aceito os <a href="/termos" target="_blank">Termos</a> e a <a href="/privacidade" target="_blank">Política de Privacidade</a>.</span></label>}
-      <button disabled={loading}>{loading ? "Processando…" : copy.action}</button>
+      <div className="auth-captcha"><Turnstile ref={captchaRef} siteKey={captchaSiteKey} onSuccess={(token) => { setCaptchaToken(token); setError(false); setMessage(""); }} onExpire={() => { setCaptchaToken(""); setError(true); setMessage("A verificação anti-bot expirou. Confirme novamente."); }} onError={() => { setCaptchaToken(""); setError(true); setMessage("Não foi possível carregar a proteção anti-bot. Verifique a conexão e tente novamente."); }} options={{ theme: "auto", size: "flexible", refreshExpired: "auto" }}/><span role="status" aria-live="polite">{captchaToken ? "Proteção anti-bot confirmada." : "Verificação anti-bot necessária."}</span></div>
+      <button disabled={loading || !captchaToken}>{loading ? "Processando…" : copy.action}</button>
       {message && <div className={error ? "auth-message error" : "auth-message"}>{message}</div>}
       {mode === "login" && <div className="auth-links"><a href="/recuperar-senha">Esqueci minha senha</a><a href="/cadastro">Criar conta</a></div>}
       {mode !== "login" && <div className="auth-links"><a href="/entrar">Já tenho conta</a></div>}

@@ -27,9 +27,9 @@ jobs:
       - name: Reject committed secrets
         shell: bash
         run: |
-          if git grep -nE '(SUPABASE_SERVICE_ROLE_KEY|MERCADO_PAGO_ACCESS_TOKEN|AI_API_KEY)=[^[:space:]]+' -- ':!*.example'; then
+          if git grep -nE '(SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|TURNSTILE_SECRET_KEY|CLOUDFLARE_TURNSTILE_SECRET_KEY|MERCADO_PAGO_ACCESS_TOKEN|AI_API_KEY)=[^[:space:]]+' -- ':!*.example'; then
             echo "Possível segredo encontrado no repositório."
             exit 1
           fi
       - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=critical
+        run: npm audit --omit=dev --audit-level=high

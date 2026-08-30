@@ -1,4 +1,4 @@
-# Gate de produção da autenticação — 21/08/2026
+# Gate de produção da autenticação — atualizado em 30/08/2026
 
 Este documento separa o que o repositório consegue provar do que depende de um projeto Supabase, SMTP e deployment reais. Um build `Ready` não comprova entrega de e-mail, políticas do painel, cookies no domínio final nem RLS com usuários reais.
 
@@ -14,6 +14,9 @@ O hardening atual foi feito sobre o `main` a partir de `352a15d`:
 - `private, no-store` fica restrito a `/conta`, às páginas/respostas de autenticação sensíveis à sessão e às APIs privadas;
 - páginas públicas não recebem esse header pelo proxy;
 - senhas novas exigem de 12 a 128 caracteres no frontend e nas APIs;
+- login, cadastro e recuperação exigem token Cloudflare Turnstile validado pelo próprio Supabase Auth;
+- a feature fica fechada se `AUTH_CAPTCHA_REQUIRED=true` ou a site key pública estiverem ausentes;
+- o limite local permanece apenas como defesa complementar; CAPTCHA e rate limits nativos são a proteção distribuída para Vercel;
 - falhas de callback, refresh, login, recuperação e logout geram eventos sem e-mail, senha ou token;
 - chamadas do navegador têm timeout e não fingem logout quando a confirmação falha.
 
@@ -27,6 +30,9 @@ npm run verify
 `verify` executa lint, TypeScript, testes unitários e um E2E com a aplicação Next em produção contra um provedor Supabase simulado. O E2E cobre:
 
 - cadastro e política de senha;
+- CAPTCHA obrigatório e encaminhado ao Supabase em login, cadastro e recuperação;
+- resposta `429` do rate limit nativo preservada, sem ser mascarada como indisponibilidade;
+- CSP permitindo somente scripts/frames do Turnstile necessários ao widget;
 - URL exata de confirmação;
 - resposta neutra da recuperação e URL exata de redefinição;
 - login e cookies `HttpOnly`, `Secure` e `SameSite=Lax`;
@@ -40,16 +46,14 @@ npm run verify
 
 Esse teste valida o código de ponta a ponta, mas não substitui a homologação com Supabase e SMTP reais.
 
-Depois de criar uma conta confirmada somente para staging, execute o smoke test contra o provedor real. Passe os valores por variáveis locais/secretas do CI; nunca grave a senha no repositório:
+Depois de preparar o staging, execute o smoke automatizado de contrato. Ele não usa credenciais e não tenta contornar o CAPTCHA:
 
 ```bash
 AUTH_STAGING_BASE_URL=https://SEU-STAGING \
-AUTH_STAGING_EMAIL=EMAIL-DE-TESTE \
-AUTH_STAGING_PASSWORD='SENHA-DE-TESTE' \
 npm run test:e2e:auth:staging
 ```
 
-Esse smoke test real cobre login, sessão, rota protegida, cookies, logout e cache. Cadastro, abertura da confirmação, recebimento da recuperação e troca de senha continuam na homologação manual abaixo porque dependem da caixa de e-mail real.
+Esse smoke cobre feature gate, obrigatoriedade do CAPTCHA nas três APIs anônimas, CSP, rota protegida e cache público. Login, sessão autenticada, cookies, logout, confirmação e recuperação continuam na homologação real em navegador abaixo, porque um job de CI não deve burlar o desafio anti-bot nem reutilizar tokens Turnstile.
 
 ## Gate protegido no GitHub
 
@@ -58,9 +62,8 @@ O workflow `.github/workflows/auth-staging-smoke.yml` permite executar a parte a
 Configure um GitHub Environment chamado `auth-staging`:
 
 - variável `AUTH_STAGING_BASE_URL` apontando para a URL HTTPS de staging;
-- secrets `AUTH_STAGING_EMAIL` e `AUTH_STAGING_PASSWORD` de uma conta exclusiva de teste;
 - aprovação obrigatória e restrição de branches, quando o plano do repositório permitir;
-- nenhuma credencial compartilhada com Production.
+- nenhuma credencial de usuário necessária para o smoke automatizado.
 
 O workflow falha quando falta configuração e recusa explicitamente `https://sites-wayne.vercel.app`, evitando que o smoke test de staging seja executado contra a produção. Ele não cria conta, não altera migrations e não ativa `AUTH_ENABLED`.
 
@@ -149,12 +152,15 @@ Mantenha `AUTH_ENABLED=false` até todos os itens abaixo passarem:
 - expiração de OTP/link revisada;
 - senha mínima configurada como 12 também no painel;
 - requisitos de caracteres e proteção contra senhas vazadas ativados conforme o plano;
+- Cloudflare Turnstile criado com allowlist exata dos domínios de staging e produção;
+- proteção CAPTCHA ativada em **Authentication > Bot and Abuse Protection** com a secret key guardada somente no Supabase;
+- rate limits nativos revisados em **Authentication > Rate Limits**;
 - SMTP próprio configurado com remetente do domínio;
 - SPF, DKIM e DMARC verificados;
 - templates de confirmação e recuperação revisados em português;
 - limites de envio e proteção contra abuso revisados.
 
-Referências oficiais: [Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls), [Password security](https://supabase.com/docs/guides/auth/password-security) e [Password-based Auth/SMTP](https://supabase.com/docs/guides/auth/passwords).
+Referências oficiais: [Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls), [Password security](https://supabase.com/docs/guides/auth/password-security), [Auth rate limits](https://supabase.com/docs/guides/auth/rate-limits), [CAPTCHA](https://supabase.com/docs/guides/auth/auth-captcha) e [Password-based Auth/SMTP](https://supabase.com/docs/guides/auth/passwords).
 
 ## Vercel
 
@@ -162,6 +168,8 @@ Referências oficiais: [Redirect URLs](https://supabase.com/docs/guides/auth/red
 - `NEXT_PUBLIC_APP_URL` definida com a origem HTTPS exata do ambiente;
 - `NEXT_PUBLIC_SUPABASE_URL` configurada;
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` configurada (a anon legada continua aceita por compatibilidade);
+- `AUTH_CAPTCHA_REQUIRED=true` configurada;
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` configurada para o domínio do ambiente;
 - `SUPABASE_SERVICE_ROLE_KEY` ausente do escopo de autenticação e nunca exposta como `NEXT_PUBLIC_*`;
 - projeto/chaves de Preview separados de Production quando possível;
 - `AUTH_ENABLED=true` primeiro em staging/Preview;
@@ -175,6 +183,7 @@ A Vercel disponibiliza apenas versões principais do Node; o range `>=22.13.0 <2
 Use um e-mail de teste controlado e nunca envie senha ou token pelo chat.
 
 - [ ] criar conta em staging;
+- [ ] resolver o Turnstile no navegador e confirmar que token ausente/expirado é recusado;
 - [ ] receber e abrir a confirmação;
 - [ ] confirmar o perfil criado e o papel `user`;
 - [ ] entrar e abrir `/conta`;

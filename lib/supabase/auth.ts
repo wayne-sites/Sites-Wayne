@@ -28,8 +28,12 @@ export class SupabaseAuthResponseError extends Error {
 
 export function isSupabaseAuthUnavailable(error: unknown) {
   if (error instanceof HttpTimeoutError) return true;
-  if (error instanceof SupabaseAuthResponseError) return error.status === 408 || error.status === 429 || error.status >= 500;
+  if (error instanceof SupabaseAuthResponseError) return error.status === 408 || error.status >= 500;
   return true;
+}
+
+export function isSupabaseRateLimited(error: unknown) {
+  return error instanceof SupabaseAuthResponseError && error.status === 429;
 }
 
 function config() {
@@ -59,19 +63,34 @@ async function authRequest<T>(path: string, init: RequestInit = {}, bearer?: str
   return body;
 }
 
-export async function signInWithPassword(email: string, password: string) {
-  return authRequest<SupabaseSession>("/token?grant_type=password", { method: "POST", body: JSON.stringify({ email, password }) });
+function captchaMetadata(captchaToken: string) {
+  return { gotrue_meta_security: { captcha_token: captchaToken } };
 }
 
-export async function signUpWithPassword(email: string, password: string, displayName: string, redirectTo: string) {
-  return authRequest<Partial<SupabaseSession> & { user: SupabaseUser }>(`/signup?redirect_to=${encodeURIComponent(redirectTo)}`, {
+export async function signInWithPassword(email: string, password: string, captchaToken: string) {
+  return authRequest<SupabaseSession>("/token?grant_type=password", {
     method: "POST",
-    body: JSON.stringify({ email, password, data: { display_name: displayName, terms_version: "2026-08-17", terms_accepted_at: new Date().toISOString() } }),
+    body: JSON.stringify({ email, password, ...captchaMetadata(captchaToken) }),
   });
 }
 
-export async function sendRecoveryEmail(email: string, redirectTo: string) {
-  return authRequest<Record<string, never>>(`/recover?redirect_to=${encodeURIComponent(redirectTo)}`, { method: "POST", body: JSON.stringify({ email }) });
+export async function signUpWithPassword(email: string, password: string, displayName: string, redirectTo: string, captchaToken: string) {
+  return authRequest<Partial<SupabaseSession> & { user: SupabaseUser }>(`/signup?redirect_to=${encodeURIComponent(redirectTo)}`, {
+    method: "POST",
+    body: JSON.stringify({
+      email,
+      password,
+      data: { display_name: displayName, terms_version: "2026-08-17", terms_accepted_at: new Date().toISOString() },
+      ...captchaMetadata(captchaToken),
+    }),
+  });
+}
+
+export async function sendRecoveryEmail(email: string, redirectTo: string, captchaToken: string) {
+  return authRequest<Record<string, never>>(`/recover?redirect_to=${encodeURIComponent(redirectTo)}`, {
+    method: "POST",
+    body: JSON.stringify({ email, ...captchaMetadata(captchaToken) }),
+  });
 }
 
 export async function updatePassword(accessToken: string, password: string) {

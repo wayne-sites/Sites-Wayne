@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isAcceptableNewPassword, safeNextPath } from "../lib/auth-security.ts";
+import { CAPTCHA_TOKEN_MAX_LENGTH, isAcceptableNewPassword, normalizeCaptchaToken, safeNextPath } from "../lib/auth-security.ts";
 
 test("safeNextPath aceita somente destinos internos conhecidos", () => {
   assert.equal(safeNextPath("/conta"), "/conta");
@@ -26,4 +26,12 @@ test("senha nova exige de 12 a 128 caracteres", () => {
   assert.equal(isAcceptableNewPassword("frase-segura"), true);
   assert.equal(isAcceptableNewPassword("x".repeat(128)), true);
   assert.equal(isAcceptableNewPassword("x".repeat(129)), false);
+});
+
+test("token CAPTCHA rejeita ausência, espaços e payload excessivo", () => {
+  assert.equal(normalizeCaptchaToken(undefined), "");
+  assert.equal(normalizeCaptchaToken("   "), "");
+  assert.equal(normalizeCaptchaToken(" captcha-valido "), "captcha-valido");
+  assert.equal(normalizeCaptchaToken("x".repeat(CAPTCHA_TOKEN_MAX_LENGTH)), "x".repeat(CAPTCHA_TOKEN_MAX_LENGTH));
+  assert.equal(normalizeCaptchaToken("x".repeat(CAPTCHA_TOKEN_MAX_LENGTH + 1)), "");
 });

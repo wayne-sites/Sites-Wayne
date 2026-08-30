@@ -11,7 +11,7 @@ Mega portal digital brasileiro construído com Next.js, TypeScript e Tailwind CS
 - página de acompanhamento do pedido e monitoramento técnico diário;
 - busca global, tema claro/escuro e notificações;
 - Nexus Watch com catálogo, busca, detalhes e provedores do TMDB pelo servidor;
-- autenticação Supabase por senha, recuperação, OAuth opcional e cookies HttpOnly;
+- autenticação Supabase por senha, recuperação, OAuth opcional, cookies HttpOnly e Cloudflare Turnstile;
 - marketplace com produtos publicados no banco, carrinho e preço recalculado no PostgreSQL;
 - relay StarkIA por conexão de saída, pareamento com token de uso único e fila auditável;
 - páginas de explorar, Nexus IA, comunidades, cursos, jogos e planos;
@@ -67,8 +67,8 @@ Não execute esses arquivos em lote num banco que já tenha objetos ou dados. Pr
 ## Ativar os módulos Nexus
 
 1. Confirme o histórico de migrations e aplique somente as pendentes pelo fluxo da Supabase CLI; nunca reaplique a migration inicial sobre um banco existente.
-2. Para autenticação, configure a URL e a chave publicável (ou anon legada) na Vercel. A `service_role` não é necessária para login.
-3. Teste cadastro, confirmação de e-mail, login, recuperação, logout e RLS em staging; somente depois defina `AUTH_ENABLED=true` em produção.
+2. Para autenticação, configure a URL, a chave publicável (ou anon legada), `AUTH_CAPTCHA_REQUIRED=true` e `NEXT_PUBLIC_TURNSTILE_SITE_KEY` na Vercel. A `service_role` não é necessária para login.
+3. Ative o Turnstile no Supabase Auth com o segredo mantido somente no painel, teste cadastro, confirmação de e-mail, login, recuperação, logout e RLS em staging; somente depois defina `AUTH_ENABLED=true` em produção.
 4. Para um portal de renda, obtenha a autorização/licença comercial aplicável do TMDB, registre `TMDB_COMMERCIAL_APPROVED=true`, configure um logo oficial aprovado e o token Read Access; só então defina `NEXUS_WATCH_ENABLED=true`.
 5. Cadastre produtos reais com status `published`, homologue o Checkout Pro e o webhook do Mercado Pago e só então defina `MARKETPLACE_ENABLED=true`.
 6. Instale o worker de relay compatível no computador StarkIA, gere `STARKIA_RELAY_SECRET` com alta entropia, pareie um dispositivo em `/automacoes` e só então defina `STARKIA_ENABLED=true`.

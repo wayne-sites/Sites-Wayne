@@ -4,6 +4,7 @@ const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 
 export const NEW_PASSWORD_MIN_LENGTH = 12;
 export const PASSWORD_MAX_LENGTH = 128;
+export const CAPTCHA_TOKEN_MAX_LENGTH = 4_096;
 
 function fullyDecode(value: string) {
   let current = value;
@@ -38,4 +39,10 @@ export function safeNextPath(value: string | null | undefined, fallback = DEFAUL
 
 export function isAcceptableNewPassword(value: string) {
   return value.length >= NEW_PASSWORD_MIN_LENGTH && value.length <= PASSWORD_MAX_LENGTH;
+}
+
+export function normalizeCaptchaToken(value: unknown) {
+  if (typeof value !== "string") return "";
+  const token = value.trim();
+  return token.length > 0 && token.length <= CAPTCHA_TOKEN_MAX_LENGTH ? token : "";
 }

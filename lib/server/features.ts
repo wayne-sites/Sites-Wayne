@@ -8,6 +8,11 @@ export type FeatureStatus = {
   missing: string[];
 };
 
+export type AuthCaptchaConfig = {
+  required: boolean;
+  siteKey: string;
+};
+
 function enabled(name: string) {
   return process.env[name]?.trim().toLowerCase() === "true";
 }
@@ -33,12 +38,22 @@ function starkiaStatus(): FeatureStatus {
 
 function authStatus(): FeatureStatus {
   const isEnabled = enabled("AUTH_ENABLED");
+  const captcha = getAuthCaptchaConfig();
   const missing: string[] = [];
   if (!present("NEXT_PUBLIC_SUPABASE_URL")) missing.push("NEXT_PUBLIC_SUPABASE_URL");
   if (!present("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") && !present("NEXT_PUBLIC_SUPABASE_ANON_KEY")) {
     missing.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY|NEXT_PUBLIC_SUPABASE_ANON_KEY");
   }
+  if (!captcha.required) missing.push("AUTH_CAPTCHA_REQUIRED=true");
+  if (!captcha.siteKey) missing.push("NEXT_PUBLIC_TURNSTILE_SITE_KEY");
   return { enabled: isEnabled, ready: isEnabled && missing.length === 0, missing };
+}
+
+export function getAuthCaptchaConfig(): AuthCaptchaConfig {
+  return {
+    required: enabled("AUTH_CAPTCHA_REQUIRED"),
+    siteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || "",
+  };
 }
 
 function present(name: string) {

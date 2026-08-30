@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   smoke:
-    name: Validate real Supabase auth in staging
+    name: Validate auth security gate in staging
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: auth-staging
@@ -27,13 +27,9 @@ jobs:
         shell: bash
         env:
           AUTH_STAGING_BASE_URL: ${{ vars.AUTH_STAGING_BASE_URL }}
-          AUTH_STAGING_EMAIL: ${{ secrets.AUTH_STAGING_EMAIL }}
-          AUTH_STAGING_PASSWORD: ${{ secrets.AUTH_STAGING_PASSWORD }}
         run: |
           missing=()
           [[ -n "$AUTH_STAGING_BASE_URL" ]] || missing+=("AUTH_STAGING_BASE_URL")
-          [[ -n "$AUTH_STAGING_EMAIL" ]] || missing+=("AUTH_STAGING_EMAIL")
-          [[ -n "$AUTH_STAGING_PASSWORD" ]] || missing+=("AUTH_STAGING_PASSWORD")
           if (( ${#missing[@]} > 0 )); then
             printf 'Missing auth-staging configuration: %s\n' "${missing[*]}"
             exit 1

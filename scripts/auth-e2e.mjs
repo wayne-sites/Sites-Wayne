@@ -6,6 +6,7 @@ import process from "node:process";
 
 const initialPassword = "senha-inicial-segura";
 const nextPassword = "senha-alterada-segura";
+const captchaToken = "captcha-e2e-valido";
 const user = {
   id: "11111111-1111-4111-8111-111111111111",
   email: "auth-e2e@example.test",
@@ -39,12 +40,15 @@ async function startFakeSupabase() {
       if (request.method === "POST" && url.pathname === "/auth/v1/signup") {
         const body = await requestBody(request);
         state.signupRedirect = url.searchParams.get("redirect_to") || "";
+        if (body.gotrue_meta_security?.captcha_token !== captchaToken) return json(response, 400, { message: "captcha verification failed" });
         if (body.password !== state.password && body.password !== initialPassword) return json(response, 400, { message: "weak password" });
         return json(response, 200, { user });
       }
 
       if (request.method === "POST" && url.pathname === "/auth/v1/token" && url.searchParams.get("grant_type") === "password") {
         const body = await requestBody(request);
+        if (body.gotrue_meta_security?.captcha_token !== captchaToken) return json(response, 400, { message: "captcha verification failed" });
+        if (body.email === "limited@example.test") return json(response, 429, { message: "rate limit exceeded" });
         if (body.email === "outage@example.test") return json(response, 503, { message: "provider unavailable" });
         if (body.email !== user.email || body.password !== state.password) return json(response, 400, { message: "invalid credentials" });
         return json(response, 200, { access_token: "access-good", refresh_token: "refresh-good", expires_in: 3_600, user });
@@ -57,6 +61,8 @@ async function startFakeSupabase() {
       }
 
       if (request.method === "POST" && url.pathname === "/auth/v1/recover") {
+        const body = await requestBody(request);
+        if (body.gotrue_meta_security?.captcha_token !== captchaToken) return json(response, 400, { message: "captcha verification failed" });
         state.recoveryRedirect = url.searchParams.get("redirect_to") || "";
         return json(response, 200, {});
       }
@@ -160,11 +166,13 @@ const baseUrl = `http://127.0.0.1:${port}`;
 const env = {
   ...process.env,
   AUTH_ENABLED: "true",
+  AUTH_CAPTCHA_REQUIRED: "true",
   AUTH_ALLOW_INSECURE_LOCAL: "true",
   NEXT_PUBLIC_APP_URL: baseUrl,
   NEXT_PUBLIC_SUPABASE_URL: fake.url,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_e2e",
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "",
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA",
 };
 
 let nextServer;
@@ -182,6 +190,8 @@ try {
   const publicPage = await fetch(baseUrl, { redirect: "manual" });
   assert.equal(publicPage.status, 200);
   assert.doesNotMatch(publicPage.headers.get("cache-control") || "", /private|no-store/i);
+  assert.match(publicPage.headers.get("content-security-policy") || "", /script-src[^;]+https:\/\/challenges\.cloudflare\.com/);
+  assert.match(publicPage.headers.get("content-security-policy") || "", /frame-src[^;]+https:\/\/challenges\.cloudflare\.com/);
 
   const protectedPage = await fetch(`${baseUrl}/conta`, { redirect: "manual" });
   assert.match(String(protectedPage.status), /^30[1278]$/);
@@ -190,23 +200,31 @@ try {
   assert.match(protectedPage.headers.get("cache-control") || "", /private/);
   assert.match(protectedPage.headers.get("cache-control") || "", /no-store/);
 
-  const weakSignup = await postJson(baseUrl, "/api/auth/signup", { email: user.email, password: "12345678901", displayName: "Teste E2E", acceptedTerms: "true" });
+  const captchaMissing = await postJson(baseUrl, "/api/auth/login", { email: user.email, password: initialPassword });
+  assert.equal(captchaMissing.status, 400);
+  assert.equal((await captchaMissing.json()).code, "captcha_required");
+
+  const weakSignup = await postJson(baseUrl, "/api/auth/signup", { email: user.email, password: "12345678901", displayName: "Teste E2E", acceptedTerms: "true", captchaToken });
   assert.equal(weakSignup.status, 400);
 
-  const signup = await postJson(baseUrl, "/api/auth/signup", { email: user.email, password: initialPassword, displayName: "Teste E2E", acceptedTerms: "true" });
+  const signup = await postJson(baseUrl, "/api/auth/signup", { email: user.email, password: initialPassword, displayName: "Teste E2E", acceptedTerms: "true", captchaToken });
   assert.equal(signup.status, 201);
   assert.equal(fake.state.signupRedirect, `${baseUrl}/auth/callback`);
 
-  const recovery = await postJson(baseUrl, "/api/auth/recover", { email: user.email });
+  const recovery = await postJson(baseUrl, "/api/auth/recover", { email: user.email, captchaToken });
   assert.equal(recovery.status, 200);
   assert.equal(fake.state.recoveryRedirect, `${baseUrl}/redefinir-senha`);
 
-  const loginOutage = await postJson(baseUrl, "/api/auth/login", { email: "outage@example.test", password: initialPassword });
+  const loginLimited = await postJson(baseUrl, "/api/auth/login", { email: "limited@example.test", password: initialPassword, captchaToken });
+  assert.equal(loginLimited.status, 429);
+  assert.equal((await loginLimited.json()).code, "rate_limited");
+
+  const loginOutage = await postJson(baseUrl, "/api/auth/login", { email: "outage@example.test", password: initialPassword, captchaToken });
   assert.equal(loginOutage.status, 503);
   const sessionOutage = await fetch(`${baseUrl}/api/auth/session`, { headers: { cookie: "nexus_access_token=access-outage" } });
   assert.equal(sessionOutage.status, 503);
 
-  const login = await postJson(baseUrl, "/api/auth/login", { email: user.email, password: initialPassword });
+  const login = await postJson(baseUrl, "/api/auth/login", { email: user.email, password: initialPassword, captchaToken });
   assert.equal(login.status, 200);
   const cookies = cookieList(login);
   assert.equal(cookies.length, 2);
@@ -243,9 +261,9 @@ try {
   assert.equal(weakReset.status, 400);
   const reset = await postJson(baseUrl, "/api/auth/update-password", { accessToken: "reset-token", password: nextPassword });
   assert.equal(reset.status, 200);
-  const oldLogin = await postJson(baseUrl, "/api/auth/login", { email: user.email, password: initialPassword });
+  const oldLogin = await postJson(baseUrl, "/api/auth/login", { email: user.email, password: initialPassword, captchaToken });
   assert.equal(oldLogin.status, 401);
-  const newLogin = await postJson(baseUrl, "/api/auth/login", { email: user.email, password: nextPassword });
+  const newLogin = await postJson(baseUrl, "/api/auth/login", { email: user.email, password: nextPassword, captchaToken });
   assert.equal(newLogin.status, 200);
 
   const logout = await postJson(baseUrl, "/api/auth/logout", {}, cookieHeader(newLogin));
@@ -253,7 +271,7 @@ try {
   assert.equal(fake.state.logoutCalls, 1);
   for (const cookie of cookieList(logout)) assert.match(cookie, /Max-Age=0/i);
 
-  console.log("Auth E2E: cadastro, callbacks, login, refresh, reset, logout, redirects e cache passaram.");
+  console.log("Auth E2E: CAPTCHA, rate limit, cadastro, callbacks, login, refresh, reset, logout, redirects e cache passaram.");
 } finally {
   if (nextServer && nextServer.exitCode === null) {
     nextServer.kill("SIGTERM");
