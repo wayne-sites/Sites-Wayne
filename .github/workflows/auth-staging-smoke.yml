@@ -1,0 +1,54 @@
+name: Auth staging smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: auth-staging-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Validate real Supabase auth in staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: auth-staging
+    env:
+      AUTH_STAGING_BASE_URL: ${{ vars.AUTH_STAGING_BASE_URL }}
+      AUTH_STAGING_EMAIL: ${{ secrets.AUTH_STAGING_EMAIL }}
+      AUTH_STAGING_PASSWORD: ${{ secrets.AUTH_STAGING_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: npm
+      - name: Validate staging configuration
+        shell: bash
+        run: |
+          missing=()
+          [[ -n "$AUTH_STAGING_BASE_URL" ]] || missing+=("AUTH_STAGING_BASE_URL")
+          [[ -n "$AUTH_STAGING_EMAIL" ]] || missing+=("AUTH_STAGING_EMAIL")
+          [[ -n "$AUTH_STAGING_PASSWORD" ]] || missing+=("AUTH_STAGING_PASSWORD")
+          if (( ${#missing[@]} > 0 )); then
+            printf 'Missing auth-staging configuration: %s\n' "${missing[*]}"
+            exit 1
+          fi
+          case "${AUTH_STAGING_BASE_URL%/}" in
+            https://sites-wayne.vercel.app)
+              echo "Refusing to run the staging smoke test against production."
+              exit 1
+              ;;
+            https://*) ;;
+            *)
+              echo "AUTH_STAGING_BASE_URL must be an HTTPS staging URL."
+              exit 1
+              ;;
+          esac
+      - run: npm ci
+      - run: npm run test:e2e:auth:staging
