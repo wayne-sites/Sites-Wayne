@@ -2,35 +2,47 @@ name: Auth staging smoke
 
 on:
   workflow_dispatch:
+  pull_request:
+    types: [opened, reopened, synchronize]
 
 permissions:
   contents: read
+  statuses: read
 
 concurrency:
-  group: auth-staging-smoke
-  cancel-in-progress: false
+  group: auth-staging-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   smoke:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.head_ref == 'fix/auth-security-gates')
     name: Validate auth security gate in staging
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     environment: auth-staging
+    env:
+      AUTH_STAGING_BASE_URL: ${{ vars.AUTH_STAGING_BASE_URL || 'https://sites-wayne-git-fix-auth-secu-7fcc51-marcelos-projects-48cd4d62.vercel.app' }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22.13.0
-      - name: Validate configuration and run smoke test
+
+      - name: Validate staging configuration
         shell: bash
-        env:
-          AUTH_STAGING_BASE_URL: ${{ vars.AUTH_STAGING_BASE_URL || 'https://sites-wayne-git-fix-auth-secu-7fcc51-marcelos-projects-48cd4d62.vercel.app' }}
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           missing=()
           [[ -n "$AUTH_STAGING_BASE_URL" ]] || missing+=("AUTH_STAGING_BASE_URL")
+          [[ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]] || missing+=("VERCEL_AUTOMATION_BYPASS_SECRET")
           if (( ${#missing[@]} > 0 )); then
             printf 'Missing auth-staging configuration: %s\n' "${missing[*]}"
             exit 1
@@ -46,4 +58,41 @@ jobs:
               exit 1
               ;;
           esac
-          npm run test:e2e:auth:staging
+
+      - name: Wait for matching Vercel Preview
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          for attempt in {1..30}; do
+            state="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${EXPECTED_SHA}/status" --jq '[.statuses[] | select(.context == "Vercel")][0].state // "pending"')"
+            echo "Vercel status for ${EXPECTED_SHA}: ${state} (attempt ${attempt}/30)"
+            case "$state" in
+              success)
+                exit 0
+                ;;
+              error|failure)
+                echo "Vercel Preview failed for ${EXPECTED_SHA}."
+                exit 1
+                ;;
+            esac
+            sleep 10
+          done
+          echo "Timed out waiting for the Vercel Preview for ${EXPECTED_SHA}."
+          exit 1
+
+      - name: Run auth staging smoke
+        shell: bash
+        run: npm run test:e2e:auth:staging
+
+      - name: Record gate result
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo "## Auth staging gate"
+            echo "- Preview SHA: \`${EXPECTED_SHA}\`"
+            echo "- Base URL: \`${AUTH_STAGING_BASE_URL}\`"
+            echo "- Vercel protection bypass: configured"
+            echo "- CAPTCHA/CSP/cache/protected-route contract: passed"
+            echo "- Production was not targeted"
+          } >> "$GITHUB_STEP_SUMMARY"
