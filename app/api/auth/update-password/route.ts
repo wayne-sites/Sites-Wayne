@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAcceptableNewPassword } from "@/lib/auth-security";
 import { getFeatureStatus } from "@/lib/server/features";
 import { apiError, bodyWithinLimit, clientIp, isSameOrigin, requestId } from "@/lib/server/http";
+import { log } from "@/lib/server/logger";
 import { rateLimit } from "@/lib/server/rate-limit";
-import { updatePassword } from "@/lib/supabase/auth";
+import { isSupabaseAuthUnavailable, updatePassword } from "@/lib/supabase/auth";
 
 export async function POST(request: NextRequest) {
   const id = requestId(request);
@@ -13,8 +15,14 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({})) as { accessToken?: unknown; password?: unknown };
   const accessToken = typeof body.accessToken === "string" ? body.accessToken : "";
   const password = typeof body.password === "string" ? body.password : "";
-  if (!accessToken || accessToken.length > 8_192 || password.length < 8 || password.length > 128) return apiError("Link ou senha inválidos.", 400, id, "invalid_password_reset");
+  if (!accessToken || accessToken.length > 8_192 || !isAcceptableNewPassword(password)) return apiError("Link inválido ou senha com menos de 12 caracteres.", 400, id, "invalid_password_reset");
   try { await updatePassword(accessToken, password); return NextResponse.json({ ok: true, requestId: id }); }
-  catch { return apiError("O link expirou ou já foi utilizado.", 400, id, "expired_recovery"); }
+  catch (error) {
+    if (isSupabaseAuthUnavailable(error)) {
+      log("error", "auth", "password_update_upstream_unavailable", { requestId: id });
+      return apiError("O serviço de senha está temporariamente indisponível. Tente novamente.", 503, id, "auth_upstream_unavailable");
+    }
+    log("warn", "auth", "password_update_failed", { requestId: id });
+    return apiError("O link expirou ou já foi utilizado.", 400, id, "expired_recovery");
+  }
 }
-

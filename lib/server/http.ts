@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
+import { matchesRequestOrigin } from "@/lib/origin-security";
 
 export class HttpTimeoutError extends Error {
   constructor() { super("upstream_timeout"); }
@@ -14,9 +15,7 @@ export function clientIp(request: NextRequest) {
 }
 
 export function isSameOrigin(request: NextRequest) {
-  const origin = request.headers.get("origin");
-  if (!origin) return true;
-  try { return new URL(origin).host === request.nextUrl.host; } catch { return false; }
+  return matchesRequestOrigin(request.headers.get("origin"), request.nextUrl.host, request.headers.get("host"));
 }
 
 export function bodyWithinLimit(request: NextRequest, bytes: number) {

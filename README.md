@@ -11,7 +11,7 @@ Mega portal digital brasileiro construído com Next.js, TypeScript e Tailwind CS
 - página de acompanhamento do pedido e monitoramento técnico diário;
 - busca global, tema claro/escuro e notificações;
 - Nexus Watch com catálogo, busca, detalhes e provedores do TMDB pelo servidor;
-- autenticação Supabase por senha, recuperação, OAuth opcional e cookies HttpOnly;
+- autenticação Supabase por senha, recuperação, OAuth opcional, cookies HttpOnly e Cloudflare Turnstile;
 - marketplace com produtos publicados no banco, carrinho e preço recalculado no PostgreSQL;
 - relay StarkIA por conexão de saída, pareamento com token de uso único e fila auditável;
 - páginas de explorar, Nexus IA, comunidades, cursos, jogos e planos;
@@ -26,7 +26,7 @@ O botão direto da área de serviços usa o contato comercial público do Sites 
 
 ## Rodar no computador
 
-Requisitos: Node.js 22.13 ou superior.
+Requisitos: Node.js 22.13 ou superior, dentro da linha 22.x.
 
 ```bash
 npm ci
@@ -60,21 +60,24 @@ O GitHub Actions executa esse conjunto em cada pull request e também verifica p
 
 ## Supabase
 
-A migration inicial está em `supabase/migrations/202608100001_initial_nexus_schema.sql`. O Autopilot usa `202608170001_wayne_autopilot.sql`; o hardening usa `202608170002_security_hardening.sql`; Watch, pedido transacional do marketplace e relay StarkIA usam `202608170003_integrations.sql`. Aplique-as na ordem. Cadastre administradores pelo painel seguro do Supabase; não existe senha administrativa fixa no código.
+A migration inicial está em `supabase/migrations/202608100001_initial_nexus_schema.sql`. O Autopilot usa `202608170001_wayne_autopilot.sql`; o hardening usa `202608170002_security_hardening.sql`; Watch, pedido transacional do marketplace e relay StarkIA usam `202608170003_integrations.sql`.
+
+Não execute esses arquivos em lote num banco que já tenha objetos ou dados. Primeiro crie um backup, consulte o histórico real com a Supabase CLI e compare o schema. A migration inicial cria tipos, tabelas e políticas e pressupõe um projeto vazio. O procedimento seguro e os testes de trigger/RLS estão em `docs/AUTH-PRODUCTION-CHECKLIST.md`. Cadastre administradores somente pelo painel seguro; não existe senha administrativa fixa no código.
 
 ## Ativar os módulos Nexus
 
-1. Aplique as quatro migrations no Supabase e configure URL, anon key e service role na Vercel.
-2. Teste cadastro, confirmação de e-mail, login, recuperação e RLS; depois defina `AUTH_ENABLED=true`.
-3. Para um portal de renda, obtenha a autorização/licença comercial aplicável do TMDB, registre `TMDB_COMMERCIAL_APPROVED=true`, configure um logo oficial aprovado e o token Read Access; só então defina `NEXUS_WATCH_ENABLED=true`.
-4. Cadastre produtos reais com status `published`, homologue o Checkout Pro e o webhook do Mercado Pago e só então defina `MARKETPLACE_ENABLED=true`.
-5. Instale o worker de relay compatível no computador StarkIA, gere `STARKIA_RELAY_SECRET` com alta entropia, pareie um dispositivo em `/automacoes` e só então defina `STARKIA_ENABLED=true`.
+1. Confirme o histórico de migrations e aplique somente as pendentes pelo fluxo da Supabase CLI; nunca reaplique a migration inicial sobre um banco existente.
+2. Para autenticação, configure a URL, a chave publicável (ou anon legada), `AUTH_CAPTCHA_REQUIRED=true` e `NEXT_PUBLIC_TURNSTILE_SITE_KEY` na Vercel. A `service_role` não é necessária para login.
+3. Ative o Turnstile no Supabase Auth com o segredo mantido somente no painel, teste cadastro, confirmação de e-mail, login, recuperação, logout e RLS em staging; somente depois defina `AUTH_ENABLED=true` em produção.
+4. Para um portal de renda, obtenha a autorização/licença comercial aplicável do TMDB, registre `TMDB_COMMERCIAL_APPROVED=true`, configure um logo oficial aprovado e o token Read Access; só então defina `NEXUS_WATCH_ENABLED=true`.
+5. Cadastre produtos reais com status `published`, homologue o Checkout Pro e o webhook do Mercado Pago e só então defina `MARKETPLACE_ENABLED=true`.
+6. Instale o worker de relay compatível no computador StarkIA, gere `STARKIA_RELAY_SECRET` com alta entropia, pareie um dispositivo em `/automacoes` e só então defina `STARKIA_ENABLED=true`.
 
 Nunca coloque `TMDB_ACCESS_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`, `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_WEBHOOK_SECRET`, `STARKIA_RELAY_SECRET` ou token de dispositivo em variáveis `NEXT_PUBLIC_*`.
 
 ## Ativar o Wayne Autopilot
 
-1. Execute as quatro migrations no Supabase, na ordem dos nomes.
+1. Depois do backup e da conferência com `supabase migration list --linked`, aplique somente as migrations realmente pendentes pelo fluxo da CLI.
 2. Configure na Vercel `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`.
 3. Crie uma aplicação no Mercado Pago e configure `MERCADO_PAGO_ACCESS_TOKEN`.
 4. Cadastre o webhook de pagamentos apontando para `/api/mercado-pago/webhook` e configure `MERCADO_PAGO_WEBHOOK_SECRET` com a assinatura secreta exibida pelo Mercado Pago.
