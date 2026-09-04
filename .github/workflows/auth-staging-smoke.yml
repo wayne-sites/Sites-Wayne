@@ -26,7 +26,8 @@ jobs:
       - name: Validate configuration and run smoke test
         shell: bash
         env:
-          AUTH_STAGING_BASE_URL: ${{ vars.AUTH_STAGING_BASE_URL }}
+          AUTH_STAGING_BASE_URL: ${{ vars.AUTH_STAGING_BASE_URL || 'https://sites-wayne-git-fix-auth-secu-7fcc51-marcelos-projects-48cd4d62.vercel.app' }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           missing=()
           [[ -n "$AUTH_STAGING_BASE_URL" ]] || missing+=("AUTH_STAGING_BASE_URL")
