@@ -33,9 +33,19 @@ function parseProviderUrl(raw: string, allowLoopback: boolean) {
   throw new Error("ai_provider_url_must_use_https");
 }
 
+function resolveGroqKey() {
+  const direct = process.env.GROQ_API_KEY?.trim();
+  if (direct) return direct;
+
+  const clientKey = process.env.CLIENT_KEY?.trim();
+  if (clientKey?.startsWith("gsk_")) return clientKey;
+
+  return undefined;
+}
+
 export function getAIProviderConfig(): AIProviderConfig | null {
   const requested = (process.env.AI_PROVIDER || "").trim().toLowerCase();
-  const groqKey = process.env.GROQ_API_KEY?.trim();
+  const groqKey = resolveGroqKey();
   const legacyKey = process.env.AI_API_KEY?.trim();
 
   const useGroq = requested === "groq" || (!requested && Boolean(groqKey));
