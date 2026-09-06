@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 
+// Temporary preview-only diagnostic: reports presence of key names, never secret values.
 if (process.env.VERCEL_ENV === "preview") {
   console.info("[nexus-ai-env-check]", {
     vercelEnv: process.env.VERCEL_ENV,
