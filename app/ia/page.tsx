@@ -1,2 +1,3 @@
-import { AIPage } from "@/components/portal-pages";
-export default AIPage;
+import { NexusAIPage } from "@/components/nexus-ai-page";
+
+export default NexusAIPage;
