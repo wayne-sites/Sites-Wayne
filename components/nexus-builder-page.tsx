@@ -156,34 +156,6 @@ export function NexusBuilderPage() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as {
-          brief?: string;
-          projectType?: string;
-          visualStyle?: string;
-          capabilityIds?: string[];
-        };
-        if (typeof parsed.brief === "string") setBrief(parsed.brief.slice(0, 4000));
-        if (projectTypes.some(([value]) => value === parsed.projectType)) setProjectType(parsed.projectType || "landing");
-        if (visualStyles.some(([value]) => value === parsed.visualStyle)) setVisualStyle(parsed.visualStyle || "premium");
-        if (Array.isArray(parsed.capabilityIds)) {
-          const allowed = new Set(BUILDER_CAPABILITIES.map((item) => item.id));
-          setSelectedCapabilities(new Set(parsed.capabilityIds.filter((id) => allowed.has(id))));
-        }
-      }
-      const savedHistory = localStorage.getItem(HISTORY_KEY);
-      if (savedHistory) {
-        const parsedHistory = JSON.parse(savedHistory) as HistoryEntry[];
-        if (Array.isArray(parsedHistory)) setHistory(parsedHistory.slice(0, 5));
-      }
-    } catch {
-      // Configuração local corrompida é ignorada; o Builder continua com defaults seguros.
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({
@@ -223,6 +195,39 @@ export function NexusBuilderPage() {
       }
       return next;
     });
+  }
+
+  function restoreSavedConfig() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as {
+        brief?: string;
+        projectType?: string;
+        visualStyle?: string;
+        capabilityIds?: string[];
+      };
+      if (typeof parsed.brief === "string") setBrief(parsed.brief.slice(0, 4000));
+      if (projectTypes.some(([value]) => value === parsed.projectType)) setProjectType(parsed.projectType || "landing");
+      if (visualStyles.some(([value]) => value === parsed.visualStyle)) setVisualStyle(parsed.visualStyle || "premium");
+      if (Array.isArray(parsed.capabilityIds)) {
+        const allowed = new Set(BUILDER_CAPABILITIES.map((item) => item.id));
+        setSelectedCapabilities(new Set(parsed.capabilityIds.filter((id) => allowed.has(id))));
+      }
+    } catch {
+      setError("A configuração local salva não pôde ser restaurada.");
+    }
+  }
+
+  function loadSavedHistory() {
+    try {
+      const saved = localStorage.getItem(HISTORY_KEY);
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as HistoryEntry[];
+      if (Array.isArray(parsed)) setHistory(parsed.slice(0, 5));
+    } catch {
+      setError("O histórico local salvo não pôde ser carregado.");
+    }
   }
 
   async function generate(event: FormEvent) {
@@ -395,6 +400,7 @@ export function NexusBuilderPage() {
                 <button type="button" onClick={() => setSelectedCapabilities(new Set(RECOMMENDED_BUILDER_CAPABILITY_IDS))}>Recomendados</button>
                 <button type="button" onClick={() => setSelectedCapabilities(new Set(BUILDER_CAPABILITIES.map((item) => item.id)))}>Todos</button>
                 <button type="button" onClick={() => setSelectedCapabilities(new Set())}>Limpar</button>
+                <button type="button" onClick={restoreSavedConfig}>Restaurar</button>
               </div>
             </div>
 
@@ -447,17 +453,20 @@ export function NexusBuilderPage() {
           </p>
           {error && <p className={styles.error}>{error}</p>}
 
-          {history.length > 0 && (
-            <div className={styles.history}>
+          <div className={styles.history}>
+            <div className={styles.historyHead}>
               <strong>Histórico local</strong>
-              {history.map((entry) => (
-                <button type="button" key={entry.id} onClick={() => restoreHistory(entry)}>
-                  <span>{entry.project.name}</span>
-                  <small>{new Date(entry.createdAt).toLocaleString("pt-BR")}</small>
-                </button>
-              ))}
+              <button type="button" onClick={loadSavedHistory}>Carregar salvos</button>
             </div>
-          )}
+            {history.length === 0 ? (
+              <small className={styles.historyEmpty}>As últimas 5 gerações podem ser restauradas neste navegador.</small>
+            ) : history.map((entry) => (
+              <button type="button" key={entry.id} onClick={() => restoreHistory(entry)}>
+                <span>{entry.project.name}</span>
+                <small>{new Date(entry.createdAt).toLocaleString("pt-BR")}</small>
+              </button>
+            ))}
+          </div>
         </form>
 
         <section className={styles.resultPanel}>
