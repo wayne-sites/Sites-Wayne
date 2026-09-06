@@ -1,6 +1,6 @@
 .workspace {
   display: grid;
-  grid-template-columns: minmax(320px, 0.78fr) minmax(520px, 1.22fr);
+  grid-template-columns: minmax(340px, 0.86fr) minmax(520px, 1.14fr);
   gap: 18px;
   padding: 0 0 46px;
 }
@@ -18,6 +18,8 @@
   align-self: start;
   position: sticky;
   top: 88px;
+  max-height: calc(100vh - 108px);
+  overflow: auto;
 }
 
 .badgeRow {
@@ -53,16 +55,16 @@
   border: 1px solid rgba(72, 222, 158, .2);
 }
 
-.panel label {
+.panel > label {
   display: block;
   margin-bottom: 9px;
   font-size: 11px;
   font-weight: 800;
 }
 
-.panel textarea {
+.panel > textarea {
   width: 100%;
-  min-height: 190px;
+  min-height: 170px;
   resize: vertical;
   border-radius: 13px;
   border: 1px solid var(--line);
@@ -75,9 +77,49 @@
   line-height: 1.6;
 }
 
-.panel textarea:focus {
+.panel > textarea:focus,
+.capabilitySearch:focus,
+.configGrid select:focus {
   border-color: rgba(119, 91, 255, .72);
   box-shadow: 0 0 0 3px rgba(112, 84, 255, .1);
+}
+
+.counter {
+  margin-top: 6px;
+  color: var(--muted);
+  text-align: right;
+  font-size: 8px;
+}
+
+.configGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 13px;
+}
+
+.configGrid label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.configGrid select,
+.capabilitySearch {
+  width: 100%;
+  min-height: 37px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg-soft);
+  color: var(--text);
+  padding: 0 10px;
+  outline: none;
+  font: inherit;
+  font-size: 9px;
 }
 
 .suggestions {
@@ -99,6 +141,123 @@
 .suggestions button:hover {
   color: var(--text);
   background: var(--panel-2);
+}
+
+.capabilityPanel {
+  margin: 14px 0 17px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-soft) 78%, transparent);
+}
+
+.capabilityHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.capabilityHead strong,
+.history > strong {
+  display: block;
+  color: var(--text);
+  font-size: 10px;
+}
+
+.capabilityHead small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.capabilityActions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.capabilityActions button,
+.categoryTabs button,
+.previewModes button {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 7px;
+  min-height: 26px;
+  padding: 0 7px;
+  font-size: 7px;
+  font-weight: 750;
+}
+
+.capabilityActions button:hover,
+.categoryTabs button:hover,
+.previewModes button:hover,
+.categoryTabs button.categoryActive,
+.previewModes button.previewModeActive {
+  color: #c8bdff;
+  border-color: rgba(119, 91, 255, .4);
+  background: rgba(112, 84, 255, .1);
+}
+
+.categoryTabs {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding: 9px 0;
+  scrollbar-width: thin;
+}
+
+.categoryTabs button {
+  flex: 0 0 auto;
+}
+
+.capabilityList {
+  display: grid;
+  gap: 6px;
+  max-height: 280px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.capabilityItem {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.capabilityItem:hover {
+  border-color: var(--line);
+  background: var(--panel-2);
+}
+
+.capabilityItem input {
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+  accent-color: #7b61ff;
+}
+
+.capabilityItem strong {
+  display: block;
+  color: var(--text);
+  font-size: 9px;
+  margin-bottom: 2px;
+}
+
+.capabilityItem small {
+  display: block;
+  color: var(--muted);
+  font-size: 7.5px;
+  line-height: 1.45;
 }
 
 .generate {
@@ -128,6 +287,40 @@
 
 .note { color: var(--muted); }
 .error { color: #ff9caa; }
+
+.history {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+}
+
+.history button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  padding: 8px 9px;
+  text-align: left;
+}
+
+.history button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 8px;
+}
+
+.history button small {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 7px;
+}
 
 .empty {
   min-height: 470px;
@@ -201,6 +394,32 @@
   border: 1px solid var(--line);
 }
 
+.auditGrid {
+  padding: 11px 22px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-soft) 58%, transparent);
+}
+
+.auditGrid span {
+  padding: 5px 7px;
+  border-radius: 7px;
+  font-size: 7.5px;
+  border: 1px solid var(--line);
+}
+
+.auditOk {
+  color: #76deb0;
+  background: rgba(46, 192, 127, .07);
+}
+
+.auditWarn {
+  color: #ffc47d;
+  background: rgba(255, 171, 70, .07);
+}
+
 .editor {
   display: grid;
   grid-template-columns: 190px minmax(0, 1fr);
@@ -253,37 +472,61 @@
   gap: 10px;
 }
 .fileToolbar strong { font-size: 9px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fileToolbar button { margin-left: auto; border: 0; background: transparent; color: #9f8cff; font-size: 8px; }
-.fileView pre {
+.fileToolbar button { border: 0; background: transparent; color: #9f8cff; font-size: 8px; }
+.fileToolbar button:first-of-type { margin-left: auto; }
+
+.codeEditor {
   margin: 0;
   padding: 16px;
+  width: 100%;
+  min-height: 430px;
   flex: 1;
+  resize: vertical;
   overflow: auto;
+  border: 0;
+  outline: 0;
   color: #cfd3e4;
   background: #080a10;
   font: 10px/1.65 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   white-space: pre;
+  tab-size: 2;
 }
 
 .previewBlock { border-top: 1px solid var(--line); }
 .previewHead {
-  min-height: 48px;
-  padding: 0 18px;
+  min-height: 54px;
+  padding: 8px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   border-bottom: 1px solid var(--line);
 }
-.previewHead strong { font-size: 10px; }
-.previewHead small { color: var(--muted); font-size: 8px; }
-.previewBlock iframe {
+.previewHead strong { display: block; font-size: 10px; }
+.previewHead small { display: block; margin-top: 3px; color: var(--muted); font-size: 8px; }
+.previewModes { display: flex; gap: 5px; }
+
+.previewCanvas {
+  min-height: 470px;
+  padding: 15px;
+  overflow: auto;
+  background: #05070b;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.previewCanvas iframe {
   display: block;
-  width: 100%;
   height: 440px;
   border: 0;
   background: white;
+  transition: width .2s ease;
 }
+
+.desktop iframe { width: 100%; }
+.tablet iframe { width: min(768px, 100%); }
+.mobile iframe { width: min(390px, 100%); }
 
 .runInfo {
   padding: 16px 20px;
@@ -293,20 +536,27 @@
   line-height: 1.6;
 }
 .runInfo strong { color: var(--text); }
+.runInfo small { color: var(--muted); }
 
-@media (max-width: 1000px) {
+@media (max-width: 1100px) {
   .workspace { grid-template-columns: 1fr; }
-  .panel { position: static; }
+  .panel { position: static; max-height: none; }
 }
 
 @media (max-width: 680px) {
   .workspace { gap: 12px; padding-bottom: 90px; }
   .panel { padding: 16px; border-radius: 14px; }
+  .configGrid { grid-template-columns: 1fr; }
+  .capabilityHead { flex-direction: column; }
+  .capabilityActions { justify-content: flex-start; }
+  .capabilityList { max-height: 330px; }
   .projectHead { flex-direction: column; padding: 16px; }
   .actions { justify-content: flex-start; }
-  .meta { padding: 11px 16px; }
+  .meta, .auditGrid { padding: 11px 16px; }
   .editor { grid-template-columns: 1fr; }
   .fileList { border-right: 0; border-bottom: 1px solid var(--line); max-height: 150px; }
-  .fileView pre { max-height: 360px; }
-  .previewBlock iframe { height: 360px; }
+  .codeEditor { min-height: 360px; max-height: 520px; }
+  .previewHead { align-items: flex-start; flex-direction: column; }
+  .previewCanvas { min-height: 390px; padding: 8px; }
+  .previewCanvas iframe { height: 380px; }
 }
