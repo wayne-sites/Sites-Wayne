@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAIProviderConfig, type AIProviderConfig } from "@/lib/ai/config";
-import { extractBuilderJson, validateBuilderProject } from "@/lib/builder/manifest";
+import { extractBuilderHtml, extractBuilderJson, validateBuilderProject } from "@/lib/builder/manifest";
 import { bodyWithinLimit, clientIp, fetchWithTimeout, isSameOrigin, requestId } from "@/lib/server/http";
 import { log } from "@/lib/server/logger";
 import { rateLimit } from "@/lib/server/rate-limit";
@@ -17,10 +17,22 @@ const builderSystemPrompt = [
   "Schema obrigatório: {\"name\":string,\"kind\":\"static-web\",\"summary\":string,\"stack\":string[],\"features\":string[],\"howToRun\":string,\"files\":[{\"path\":string,\"content\":string}]}",
 ].join(" ");
 
+const singleFileFallbackPrompt = [
+  "Você é o Nexus Builder V1 em modo de recuperação.",
+  "Responda SOMENTE com um documento HTML completo, começando por <!doctype html> e terminando em </html>.",
+  "Não use markdown nem cercas de código.",
+  "Inclua todo o CSS em <style> e todo JavaScript necessário em <script> no próprio arquivo.",
+  "O resultado deve funcionar abrindo index.html diretamente no navegador, sem build, npm, backend ou servidor.",
+  "Não use fetch, APIs externas, scripts externos, fontes externas, iframes, trackers, pagamentos ou formulários que enviem dados para servidores.",
+  "Não inclua chaves, tokens, credenciais, dados privados, eval, mineração, downloads executáveis, shell, PowerShell, batch ou ações de deploy.",
+  "Mantenha o documento abaixo de 18.000 caracteres e priorize interface responsiva, acessibilidade, boa UX e conteúdo completo.",
+].join(" ");
+
 async function providerCompletion(
   provider: AIProviderConfig,
   messages: Array<{ role: "system" | "user"; content: string }>,
   temperature: number,
+  maxTokens = 5000,
 ) {
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (provider.apiKey) headers.authorization = `Bearer ${provider.apiKey}`;
@@ -33,7 +45,7 @@ async function providerCompletion(
       body: JSON.stringify({
         model: provider.model,
         temperature,
-        max_tokens: 5000,
+        max_tokens: maxTokens,
         messages,
       }),
     },
@@ -58,6 +70,32 @@ async function providerCompletion(
 
 function parseProject(raw: string) {
   return validateBuilderProject(extractBuilderJson(raw));
+}
+
+function buildSingleFileProject(rawHtml: string) {
+  const html = extractBuilderHtml(rawHtml);
+  return validateBuilderProject({
+    name: "Projeto Nexus Builder",
+    kind: "static-web",
+    summary: "Projeto web estático gerado pelo Nexus Builder em modo de recuperação robusta.",
+    stack: ["HTML", "CSS", "JavaScript"],
+    features: ["Layout responsivo", "Conteúdo pronto para editar", "Execução local sem build"],
+    howToRun: "Baixe os arquivos e abra index.html em um navegador moderno.",
+    files: [
+      { path: "index.html", content: html },
+      {
+        path: "README.md",
+        content: [
+          "# Projeto Nexus Builder",
+          "",
+          "Projeto web estático gerado pelo Nexus Builder.",
+          "",
+          "## Como executar",
+          "Abra `index.html` em um navegador moderno. Nenhum build ou servidor é necessário.",
+        ].join("\n"),
+      },
+    ],
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -134,21 +172,44 @@ export async function POST(request: NextRequest) {
         provider: provider.name,
         error: firstError,
       });
-      const repaired = await providerCompletion(
-        provider,
-        [
-          {
-            role: "system",
-            content: `${builderSystemPrompt} Corrija a saída fornecida para cumprir exatamente o schema e as restrições.`,
-          },
-          {
-            role: "user",
-            content: `Pedido original:\n${brief}\n\nSaída inválida a corrigir:\n${first.slice(0, 30_000)}`,
-          },
-        ],
-        0,
-      );
-      project = parseProject(repaired);
+
+      try {
+        const repaired = await providerCompletion(
+          provider,
+          [
+            {
+              role: "system",
+              content: `${builderSystemPrompt} Corrija a saída fornecida para cumprir exatamente o schema e as restrições.`,
+            },
+            {
+              role: "user",
+              content: `Pedido original:\n${brief}\n\nSaída inválida a corrigir:\n${first.slice(0, 30_000)}`,
+            },
+          ],
+          0,
+        );
+        project = parseProject(repaired);
+      } catch (repairError) {
+        log("warn", "nexus-builder", "manifest_repair_failed_using_html_fallback", {
+          requestId: id,
+          provider: provider.name,
+          error: repairError,
+        });
+
+        const fallback = await providerCompletion(
+          provider,
+          [
+            { role: "system", content: singleFileFallbackPrompt },
+            {
+              role: "user",
+              content: `Crie o site completo para este pedido:\n\n${brief}`,
+            },
+          ],
+          0.2,
+          3500,
+        );
+        project = buildSingleFileProject(fallback);
+      }
     }
 
     return NextResponse.json({

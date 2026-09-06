@@ -102,6 +102,23 @@ export function extractBuilderJson(raw: string): unknown {
   return JSON.parse(candidate.slice(start, end + 1));
 }
 
+export function extractBuilderHtml(raw: string) {
+  const trimmed = raw.trim();
+  if (!trimmed) throw new Error("builder_empty_response");
+
+  const fenced = trimmed.match(/```(?:html)?\s*([\s\S]*?)```/i);
+  const candidate = (fenced?.[1] || trimmed).trim();
+  const lower = candidate.toLowerCase();
+  const doctypeStart = lower.indexOf("<!doctype html");
+  const htmlStart = lower.indexOf("<html");
+  const start = doctypeStart >= 0 ? doctypeStart : htmlStart;
+  const end = lower.lastIndexOf("</html>");
+
+  if (start < 0) throw new Error("builder_html_missing");
+  if (end < start) throw new Error("builder_html_incomplete");
+  return candidate.slice(start, end + "</html>".length).trim();
+}
+
 export function validateBuilderProject(value: unknown): BuilderProject {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("builder_project_invalid");
   const input = value as Record<string, unknown>;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { extractBuilderJson, validateBuilderProject } from "../lib/builder/manifest.ts";
+import { extractBuilderHtml, extractBuilderJson, validateBuilderProject } from "../lib/builder/manifest.ts";
 
 const validProject = {
   name: "Projeto Demo",
@@ -27,6 +27,17 @@ test("Builder extrai JSON mesmo quando o provider usa fence", () => {
   const parsed = extractBuilderJson(`\`\`\`json\n${JSON.stringify(validProject)}\n\`\`\``);
   const result = validateBuilderProject(parsed);
   assert.equal(result.name, "Projeto Demo");
+});
+
+test("Builder extrai HTML completo de resposta simples ou fenced", () => {
+  const html = "<!doctype html><html><body><h1>Ok</h1></body></html>";
+  assert.equal(extractBuilderHtml(html), html);
+  assert.equal(extractBuilderHtml(`texto antes\n\`\`\`html\n${html}\n\`\`\`\ntexto depois`), html);
+});
+
+test("Builder rejeita fallback HTML incompleto", () => {
+  assert.throws(() => extractBuilderHtml("<html><body>sem fechamento"), /builder_html_incomplete/);
+  assert.throws(() => extractBuilderHtml("apenas texto"), /builder_html_missing/);
 });
 
 test("Builder bloqueia path traversal e arquivos ocultos", () => {
