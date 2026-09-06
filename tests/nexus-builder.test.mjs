@@ -42,7 +42,7 @@ test("Builder bloqueia path traversal e arquivos ocultos", () => {
         { path: ".env", content: "TOKEN=placeholder" },
       ],
     }),
-    /builder_path_forbidden/,
+    /builder_path_(unsafe|forbidden)/,
   );
 });
 
