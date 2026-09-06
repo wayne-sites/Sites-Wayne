@@ -41,7 +41,8 @@ test("todos os módulos podem ser ativados de uma vez", () => {
   const normalized = normalizeBuilderCapabilities(ids);
   assert.equal(normalized.length, 100);
   const prompt = buildBuilderCapabilityPrompt(normalized);
-  assert.match(prompt, /\[Segurança\] Sem segredos/i);
+  assert.match(prompt, /\[Segurança\]/);
+  assert.match(prompt, /Nunca inclua chaves, tokens/i);
   assert.match(prompt, /\[Acessibilidade\]/);
   assert.match(prompt, /\[Qualidade\]/);
 });
