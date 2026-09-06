@@ -1,0 +1,37 @@
+name: Nexus AI one-off question
+
+on:
+  push:
+    branches: [test/nexus-ai-question-final]
+
+permissions:
+  contents: read
+
+jobs:
+  ask:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ask production Nexus AI
+        shell: bash
+        run: |
+          node <<'NODE'
+          const base = 'https://sites-wayne.vercel.app';
+          const question = 'Explique em uma frase por que Brasília foi construída no interior do Brasil.';
+          const response = await fetch(`${base}/api/ai`, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              origin: base,
+            },
+            body: JSON.stringify({
+              prompt: question,
+              tool: 'Assistente de texto',
+            }),
+          });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(`HTTP ${response.status}: ${body.error || 'unknown_error'}`);
+          console.log(`QUESTION=${question}`);
+          console.log(`ANSWER=${body.result}`);
+          console.log(`MODE=${body.mode}`);
+          NODE
