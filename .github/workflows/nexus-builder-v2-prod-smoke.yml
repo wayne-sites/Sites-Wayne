@@ -1,0 +1,62 @@
+name: Nexus Builder V2 production smoke
+
+on:
+  push:
+    branches:
+      - test/nexus-builder-v2-prod-smoke-100
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate with all 100 V2 modules
+        shell: bash
+        run: |
+          node --experimental-strip-types --input-type=module <<'NODE'
+          import { BUILDER_CAPABILITIES } from './lib/builder/capabilities.ts';
+
+          const base = 'https://sites-wayne.vercel.app';
+          const capabilities = BUILDER_CAPABILITIES.map((item) => item.id);
+          if (capabilities.length !== 100) throw new Error(`expected 100 capabilities, got ${capabilities.length}`);
+
+          const response = await fetch(`${base}/api/builder`, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              origin: base,
+            },
+            body: JSON.stringify({
+              brief: 'Crie uma landing page premium e responsiva para uma academia brasileira chamada Wayne Fitness, com apresentação, planos demonstrativos, horários, FAQ e chamada para contato. Não use APIs externas e não invente dados reais.',
+              projectType: 'landing',
+              visualStyle: 'premium',
+              capabilities,
+            }),
+          });
+
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(`HTTP ${response.status}: ${body.error || body.code || 'unknown_error'}`);
+          if (body.mode !== 'live') throw new Error(`mode inválido: ${body.mode}`);
+          if (body.provider !== 'groq') throw new Error(`provider inválido: ${body.provider}`);
+          if (!Array.isArray(body.capabilities) || body.capabilities.length !== 100) {
+            throw new Error(`capability count inválido: ${body.capabilities?.length}`);
+          }
+          if (body.projectType !== 'landing') throw new Error(`projectType inválido: ${body.projectType}`);
+          if (body.visualStyle !== 'premium') throw new Error(`visualStyle inválido: ${body.visualStyle}`);
+          if (!body.project || body.project.kind !== 'static-web') throw new Error('projeto ausente ou kind inválido');
+          if (!Array.isArray(body.project.files) || body.project.files.length < 2) throw new Error('arquivos insuficientes');
+          const index = body.project.files.find((file) => file.path === 'index.html');
+          if (!index || typeof index.content !== 'string' || index.content.length < 200) throw new Error('index.html inválido');
+
+          console.log('NEXUS_BUILDER_V2_SMOKE_OK');
+          console.log(`provider=${body.provider}`);
+          console.log(`model=${body.model}`);
+          console.log(`capability_count=${body.capabilities.length}`);
+          console.log(`generation_path=${body.generationPath}`);
+          console.log(`project=${body.project.name}`);
+          console.log(`files=${body.project.files.map((file) => file.path).join(',')}`);
+          NODE
