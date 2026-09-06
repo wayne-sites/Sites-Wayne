@@ -1,0 +1,44 @@
+name: Nexus Builder production smoke
+
+on:
+  push:
+    branches: [test/nexus-builder-prod-smoke]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Generate one real project in production
+        shell: bash
+        run: |
+          node <<'NODE'
+          const base = 'https://sites-wayne.vercel.app';
+          const response = await fetch(`${base}/api/builder`, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              origin: base,
+            },
+            body: JSON.stringify({
+              brief: 'Crie uma landing page simples e responsiva para uma cafeteria brasileira, com apresentação, três produtos, horário de funcionamento e botão visual de contato. Não use APIs externas.'
+            }),
+          });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(`HTTP ${response.status}: ${body.error || body.code || 'unknown_error'}`);
+          if (body.mode !== 'live') throw new Error(`mode inválido: ${body.mode}`);
+          if (body.provider !== 'groq') throw new Error(`provider inválido: ${body.provider}`);
+          if (!body.project || body.project.kind !== 'static-web') throw new Error('projeto ausente ou kind inválido');
+          if (!Array.isArray(body.project.files) || body.project.files.length < 2) throw new Error('arquivos insuficientes');
+          if (!body.project.files.some((file) => file.path === 'index.html' && typeof file.content === 'string' && file.content.length > 50)) {
+            throw new Error('index.html válido não encontrado');
+          }
+          console.log('NEXUS_BUILDER_SMOKE_OK');
+          console.log(`provider=${body.provider}`);
+          console.log(`model=${body.model}`);
+          console.log(`project=${body.project.name}`);
+          console.log(`files=${body.project.files.map((file) => file.path).join(',')}`);
+          NODE
