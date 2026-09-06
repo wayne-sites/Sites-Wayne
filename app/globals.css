@@ -184,3 +184,4 @@ footer{border-top:1px solid var(--line);padding:42px clamp(38px,5.3vw,82px) 25px
 
 .auth-consent{display:flex!important;align-items:flex-start;gap:8px;line-height:1.5;margin-top:14px!important;color:var(--muted)}.login-wrap .auth-consent input{width:14px;height:14px;flex:0 0 auto;margin:1px 0 0}.auth-consent a{color:#a18cff}
 .oauth-list .auth-consent{width:100%;margin:0 0 8px!important}.oauth-list a[aria-disabled="true"]{opacity:.4;cursor:not-allowed}
+.auth-captcha{display:grid;gap:7px;margin-top:16px;min-height:74px}.auth-captcha>span{color:var(--muted);font-size:7px;line-height:1.4}.login-wrap form>button:disabled{cursor:not-allowed;opacity:.55}.login-wrap label{font-size:11px}.login-wrap input{font-size:13px}.login-wrap form>button{font-size:12px}.login-wrap form>small{font-size:9px}.auth-links a,.oauth-list a,.auth-message{font-size:11px}

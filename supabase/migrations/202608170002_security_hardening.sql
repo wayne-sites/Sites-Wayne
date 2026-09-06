@@ -1,6 +1,26 @@
 -- P0 hardening: impede elevação de privilégio e escrita financeira pelo cliente.
 -- Aplicar após 202608100001_initial_nexus_schema.sql.
 
+-- Data API: privilégios explícitos e mínimos para projetos com exposição opt-in.
+grant usage on schema public to anon, authenticated, service_role;
+revoke create on schema public from public, anon, authenticated;
+revoke all privileges on all tables in schema public from anon, authenticated;
+grant all privileges on all tables in schema public to service_role;
+grant all privileges on all sequences in schema public to service_role;
+
+alter default privileges for role postgres in schema public
+  revoke select, insert, update, delete on tables from anon, authenticated;
+alter default privileges for role postgres in schema public
+  grant all privileges on tables to service_role;
+alter default privileges for role postgres in schema public
+  revoke usage, select on sequences from anon, authenticated;
+alter default privileges for role postgres in schema public
+  grant all privileges on sequences to service_role;
+alter default privileges for role postgres in schema public
+  revoke execute on functions from public, anon, authenticated;
+alter default privileges for role postgres in schema public
+  grant execute on functions to service_role;
+
 revoke update on table public.profiles from anon, authenticated;
 grant update (username, display_name, bio, avatar_url, links) on table public.profiles to authenticated;
 
@@ -55,6 +75,67 @@ create policy "users join communities safely" on public.community_members for in
 drop policy if exists "memberships visible to members" on public.community_members;
 create policy "users read own memberships" on public.community_members for select
   using(user_id=auth.uid());
+
+-- Leitura pública limitada por RLS.
+grant select on table
+  public.profiles,
+  public.categories,
+  public.posts,
+  public.comments,
+  public.videos,
+  public.products,
+  public.reviews,
+  public.communities,
+  public.news,
+  public.courses,
+  public.lessons,
+  public.games,
+  public.achievements
+to anon, authenticated;
+
+-- Escritas do usuário autenticado continuam limitadas pelas políticas de propriedade.
+grant insert, update, delete on table
+  public.posts,
+  public.comments,
+  public.videos,
+  public.communities
+to authenticated;
+
+grant select, insert, update, delete on table
+  public.post_likes,
+  public.post_saves,
+  public.follows,
+  public.blocks,
+  public.video_likes,
+  public.video_saves,
+  public.product_favorites
+to authenticated;
+
+grant select on table
+  public.orders,
+  public.order_items,
+  public.community_members,
+  public.conversations,
+  public.conversation_members,
+  public.messages,
+  public.notifications,
+  public.subscriptions,
+  public.payments,
+  public.ai_usage,
+  public.reports,
+  public.course_enrollments,
+  public.lesson_progress,
+  public.user_achievements
+to authenticated;
+
+grant insert on table
+  public.reviews,
+  public.community_members,
+  public.messages,
+  public.reports
+to authenticated;
+
+revoke all on function public.handle_new_user() from public, anon, authenticated;
 
 comment on table public.orders is 'Escrita restrita ao backend; totais e status nunca são aceitos diretamente do navegador.';
 comment on column public.profiles.role is 'Campo administrativo; não pode ser alterado por usuários autenticados.';

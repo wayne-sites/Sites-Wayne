@@ -3,7 +3,7 @@ import { fetchSafeGet, fetchWithTimeout } from "@/lib/server/http";
 
 function publicConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) throw new Error("supabase_public_not_configured");
   return { url, key };
 }
@@ -34,4 +34,3 @@ export async function supabasePublicRequest<T>(path: string) {
   if (!response.ok) throw new Error(`supabase_public_${response.status}`);
   return await response.json() as T;
 }
-

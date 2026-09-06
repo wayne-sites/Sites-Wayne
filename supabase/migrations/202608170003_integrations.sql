@@ -23,7 +23,11 @@ language plpgsql security definer set search_path=''
 as $$
 begin
   insert into public.profiles(id,username,display_name)
-  values(new.id,'user_'||substr(replace(new.id::text,'-',''),1,10),coalesce(new.raw_user_meta_data->>'display_name','Novo membro'));
+  values(
+    new.id,
+    'user_' || rtrim(translate(encode(uuid_send(new.id),'base64'), '+/', '-_'), '='),
+    coalesce(new.raw_user_meta_data->>'display_name','Novo membro')
+  );
   return new;
 end;
 $$;
@@ -50,6 +54,9 @@ create trigger zz_record_legal_consent_insert after insert on auth.users
   for each row execute procedure public.record_legal_consent();
 create trigger zz_record_legal_consent_update after update of raw_user_meta_data on auth.users
   for each row execute procedure public.record_legal_consent();
+
+revoke all on function public.handle_new_user() from public, anon, authenticated;
+revoke all on function public.record_legal_consent() from public, anon, authenticated;
 
 create table public.watch_saves (
   user_id uuid not null references public.profiles(id) on delete cascade,
