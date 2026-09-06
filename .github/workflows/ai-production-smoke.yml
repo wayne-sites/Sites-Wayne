@@ -1,0 +1,67 @@
+name: Nexus AI production smoke
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: contains(github.event.head_commit.message, '[ai-smoke]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify production Groq response
+        shell: bash
+        run: |
+          node <<'NODE'
+          const base = 'https://sites-wayne.vercel.app';
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+          for (let attempt = 1; attempt <= 30; attempt += 1) {
+            try {
+              const statusResponse = await fetch(`${base}/api/ai`, {
+                headers: { 'cache-control': 'no-store' },
+              });
+              const status = statusResponse.ok ? await statusResponse.json() : null;
+
+              if (status?.configured === true && status?.provider === 'groq') {
+                const response = await fetch(`${base}/api/ai`, {
+                  method: 'POST',
+                  headers: {
+                    'content-type': 'application/json',
+                    origin: base,
+                  },
+                  body: JSON.stringify({
+                    prompt: 'Responda somente: WAYNE_AI_OK',
+                    tool: 'Assistente de texto',
+                  }),
+                });
+
+                const body = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                  throw new Error(`POST /api/ai -> ${response.status}: ${body.error || 'unknown_error'}`);
+                }
+                if (body.mode !== 'live' || typeof body.result !== 'string' || !body.result.trim()) {
+                  throw new Error('Resposta da IA não confirmou mode=live com conteúdo.');
+                }
+
+                console.log('NEXUS_AI_SMOKE_OK');
+                console.log(`provider=${status.provider}`);
+                console.log(`model=${status.model}`);
+                console.log(`result=${body.result.slice(0, 200)}`);
+                process.exit(0);
+              }
+
+              console.log(`attempt=${attempt} provider ainda não pronto`);
+            } catch (error) {
+              console.log(`attempt=${attempt} ${error instanceof Error ? error.message : String(error)}`);
+            }
+
+            await sleep(6000);
+          }
+
+          throw new Error('Nexus AI production smoke não ficou verde dentro do tempo limite.');
+          NODE
