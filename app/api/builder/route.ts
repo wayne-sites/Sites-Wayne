@@ -1,12 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAIProviderConfig, type AIProviderConfig } from "@/lib/ai/config";
+import {
+  buildBuilderCapabilityPrompt,
+  normalizeBuilderCapabilities,
+} from "@/lib/builder/capabilities";
 import { extractBuilderHtml, extractBuilderJson, validateBuilderProject } from "@/lib/builder/manifest";
 import { bodyWithinLimit, clientIp, fetchWithTimeout, isSameOrigin, requestId } from "@/lib/server/http";
 import { log } from "@/lib/server/logger";
 import { rateLimit } from "@/lib/server/rate-limit";
 
+const PROJECT_TYPES = new Map([
+  ["landing", "landing page comercial"],
+  ["business", "site institucional"],
+  ["portfolio", "portfólio"],
+  ["dashboard", "painel/dashboard local"],
+  ["catalog", "catálogo de produtos ou serviços"],
+  ["education", "experiência educacional"],
+  ["event", "site de evento"],
+  ["community", "interface de comunidade"],
+]);
+
+const VISUAL_STYLES = new Map([
+  ["premium", "premium e refinado"],
+  ["futuristic", "futurista e tecnológico"],
+  ["minimal", "minimalista e limpo"],
+  ["corporate", "corporativo e confiável"],
+  ["editorial", "editorial e tipográfico"],
+  ["playful", "vibrante e amigável"],
+  ["luxury", "luxuoso e sofisticado"],
+  ["brutalist", "brutalista controlado e legível"],
+]);
+
 const builderSystemPrompt = [
-  "Você é o Nexus Builder V1, um gerador de projetos web estáticos completos.",
+  "Você é o Nexus Builder V2, um gerador de projetos web estáticos completos.",
   "Responda SOMENTE com um objeto JSON válido, sem markdown, comentários ou texto antes/depois.",
   "O projeto deve funcionar abrindo index.html diretamente no navegador, sem build, npm, backend ou servidor.",
   "Gere no máximo 10 arquivos usando apenas HTML, CSS, JavaScript, JSON, Markdown ou TXT.",
@@ -18,7 +44,7 @@ const builderSystemPrompt = [
 ].join(" ");
 
 const singleFileFallbackPrompt = [
-  "Você é o Nexus Builder V1 em modo de recuperação.",
+  "Você é o Nexus Builder V2 em modo de recuperação.",
   "Responda SOMENTE com um documento HTML completo, começando por <!doctype html> e terminando em </html>.",
   "Não use markdown nem cercas de código.",
   "Inclua todo o CSS em <style> e todo JavaScript necessário em <script> no próprio arquivo.",
@@ -27,6 +53,24 @@ const singleFileFallbackPrompt = [
   "Não inclua chaves, tokens, credenciais, dados privados, eval, mineração, downloads executáveis, shell, PowerShell, batch ou ações de deploy.",
   "Mantenha o documento abaixo de 18.000 caracteres e priorize interface responsiva, acessibilidade, boa UX e conteúdo completo.",
 ].join(" ");
+
+function normalizeOption(value: unknown, options: Map<string, string>, fallback: string) {
+  if (typeof value !== "string") return fallback;
+  return options.has(value) ? value : fallback;
+}
+
+function generationContext(
+  projectType: string,
+  visualStyle: string,
+  capabilityIds: string[],
+) {
+  const capabilityPrompt = buildBuilderCapabilityPrompt(capabilityIds);
+  return [
+    `Tipo de projeto: ${PROJECT_TYPES.get(projectType)}.`,
+    `Direção visual: ${VISUAL_STYLES.get(visualStyle)}.`,
+    capabilityPrompt ? `Módulos de qualidade ativos (${capabilityIds.length}):\n${capabilityPrompt}` : "Nenhum módulo opcional foi selecionado.",
+  ].join("\n\n");
+}
 
 async function providerCompletion(
   provider: AIProviderConfig,
@@ -74,8 +118,9 @@ function parseProject(raw: string) {
 
 function buildSingleFileProject(rawHtml: string) {
   const html = extractBuilderHtml(rawHtml);
+  const title = html.match(/<title[^>]*>([^<]{1,80})<\/title>/i)?.[1]?.trim() || "Projeto Nexus Builder";
   return validateBuilderProject({
-    name: "Projeto Nexus Builder",
+    name: title,
     kind: "static-web",
     summary: "Projeto web estático gerado pelo Nexus Builder em modo de recuperação robusta.",
     stack: ["HTML", "CSS", "JavaScript"],
@@ -86,7 +131,7 @@ function buildSingleFileProject(rawHtml: string) {
       {
         path: "README.md",
         content: [
-          "# Projeto Nexus Builder",
+          `# ${title}`,
           "",
           "Projeto web estático gerado pelo Nexus Builder.",
           "",
@@ -103,7 +148,7 @@ export async function POST(request: NextRequest) {
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "Origem não autorizada.", requestId: id }, { status: 403 });
   }
-  if (!bodyWithinLimit(request, 20_000)) {
+  if (!bodyWithinLimit(request, 35_000)) {
     return NextResponse.json({ error: "Solicitação muito grande.", requestId: id }, { status: 413 });
   }
 
@@ -117,7 +162,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { brief?: unknown };
+  let body: {
+    brief?: unknown;
+    capabilities?: unknown;
+    projectType?: unknown;
+    visualStyle?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -131,6 +181,11 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+
+  const capabilityIds = normalizeBuilderCapabilities(body.capabilities);
+  const projectType = normalizeOption(body.projectType, PROJECT_TYPES, "landing");
+  const visualStyle = normalizeOption(body.visualStyle, VISUAL_STYLES, "premium");
+  const context = generationContext(projectType, visualStyle, capabilityIds);
 
   let provider: AIProviderConfig | null;
   try {
@@ -157,13 +212,14 @@ export async function POST(request: NextRequest) {
         { role: "system", content: builderSystemPrompt },
         {
           role: "user",
-          content: `Crie um projeto completo para este pedido:\n\n${brief}\n\nEntregue somente o JSON no schema exigido.`,
+          content: `Crie um projeto completo para este pedido:\n\n${brief}\n\n${context}\n\nEntregue somente o JSON no schema exigido.`,
         },
       ],
       0.25,
     );
 
     let project;
+    let generationPath: "structured" | "repaired" | "html-fallback" = "structured";
     try {
       project = parseProject(first);
     } catch (firstError) {
@@ -183,12 +239,13 @@ export async function POST(request: NextRequest) {
             },
             {
               role: "user",
-              content: `Pedido original:\n${brief}\n\nSaída inválida a corrigir:\n${first.slice(0, 30_000)}`,
+              content: `Pedido original:\n${brief}\n\n${context}\n\nSaída inválida a corrigir:\n${first.slice(0, 30_000)}`,
             },
           ],
           0,
         );
         project = parseProject(repaired);
+        generationPath = "repaired";
       } catch (repairError) {
         log("warn", "nexus-builder", "manifest_repair_failed_using_html_fallback", {
           requestId: id,
@@ -202,13 +259,14 @@ export async function POST(request: NextRequest) {
             { role: "system", content: singleFileFallbackPrompt },
             {
               role: "user",
-              content: `Crie o site completo para este pedido:\n\n${brief}`,
+              content: `Crie o site completo para este pedido:\n\n${brief}\n\n${context}`,
             },
           ],
           0.2,
           3500,
         );
         project = buildSingleFileProject(fallback);
+        generationPath = "html-fallback";
       }
     }
 
@@ -218,6 +276,10 @@ export async function POST(request: NextRequest) {
       provider: provider.name,
       model: provider.model,
       remaining: usage.remaining,
+      capabilities: capabilityIds,
+      projectType,
+      visualStyle,
+      generationPath,
       requestId: id,
     });
   } catch (error) {
