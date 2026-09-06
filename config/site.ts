@@ -12,6 +12,7 @@ export const portalNavigation = [
   { label: "Explorar", icon: "◇", href: "/explorar" },
   { label: "Vídeos", icon: "▶", href: "/videos" },
   { label: "Nexus IA", icon: "✦", href: "/ia" },
+  { label: "Builder", icon: "◆", href: "/builder" },
   { label: "Automações", icon: "⚙", href: "/automacoes" },
   { label: "Comunidades", icon: "◎", href: "/comunidades" },
   { label: "Marketplace", icon: "▣", href: "/marketplace" },
