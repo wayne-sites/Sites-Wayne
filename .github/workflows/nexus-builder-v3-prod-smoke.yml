@@ -1,0 +1,111 @@
+name: Nexus Builder V3 production smoke
+
+on:
+  push:
+    branches:
+      - test/nexus-builder-v3-prod-smoke
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run V3 plan and build pipeline
+        shell: bash
+        run: |
+          node --experimental-strip-types --input-type=module <<'NODE'
+          import { BUILDER_CAPABILITIES } from './lib/builder/capabilities.ts';
+
+          const base = 'https://sites-wayne.vercel.app';
+          const brief = 'Crie um site premium para uma barbearia chamada Barbearia Wayne em São Paulo, focado em apresentar serviços, equipe, localização e incentivar agendamento. Não invente telefone, endereço, preços, avaliações ou dados comerciais que não foram fornecidos.';
+
+          async function post(path, body) {
+            const response = await fetch(`${base}${path}`, {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                origin: base,
+              },
+              body: JSON.stringify(body),
+            });
+            const data = await response.json().catch(() => ({}));
+            return { response, data };
+          }
+
+          async function withProviderRetry(fn) {
+            let result = await fn();
+            if (!result.response.ok && result.data?.code === 'provider_rate_limited') {
+              console.log('provider_rate_limited_retrying_once');
+              await new Promise((resolve) => setTimeout(resolve, 20000));
+              result = await fn();
+            }
+            return result;
+          }
+
+          const planned = await withProviderRetry(() => post('/api/builder/plan', { brief }));
+          if (!planned.response.ok) {
+            throw new Error(`planner HTTP ${planned.response.status}: ${planned.data.error || planned.data.code || 'unknown_error'}`);
+          }
+          if (planned.data.mode !== 'live') throw new Error(`planner mode inválido: ${planned.data.mode}`);
+          if (planned.data.provider !== 'groq') throw new Error(`planner provider inválido: ${planned.data.provider}`);
+          if (!planned.data.plan?.projectName) throw new Error('planner sem projectName');
+          if (!Array.isArray(planned.data.plan.pages) || planned.data.plan.pages.length < 1) throw new Error('planner sem páginas');
+          if (typeof planned.data.plan.readiness?.canGenerate !== 'boolean') throw new Error('planner readiness inválido');
+          if (!planned.data.plan.readiness.canGenerate) throw new Error(`planner bloqueou geração: ${planned.data.plan.readiness.blockers?.join(', ')}`);
+
+          const plan = planned.data.plan;
+          const pagePlan = plan.pages
+            .map((page) => `${page.title}: ${page.purpose}. Seções: ${page.sections.join(', ')}.`)
+            .join('\n');
+          const missingData = plan.missingBusinessData?.length
+            ? `Dados reais ainda ausentes: ${plan.missingBusinessData.join(', ')}. Use placeholders explicitamente marcados e não invente valores.`
+            : 'Use somente dados reais informados.';
+          const buildBrief = [
+            plan.buildBrief,
+            `Objetivo: ${plan.objective}`,
+            `Público: ${plan.audience}`,
+            `Conversão principal: ${plan.conversionGoal}`,
+            `SEO principal: ${plan.seo.primaryKeyword}`,
+            `Título SEO: ${plan.seo.title}`,
+            `Descrição SEO: ${plan.seo.description}`,
+            `Arquitetura planejada:\n${pagePlan}`,
+            missingData,
+          ].join('\n\n').slice(0, 4000);
+
+          const capabilities = BUILDER_CAPABILITIES.map((item) => item.id);
+          if (capabilities.length !== 100) throw new Error(`esperado 100 módulos, recebido ${capabilities.length}`);
+
+          const built = await withProviderRetry(() => post('/api/builder', {
+            brief: buildBrief,
+            projectType: plan.pages.length > 1 ? 'business' : 'landing',
+            visualStyle: 'premium',
+            capabilities,
+          }));
+          if (!built.response.ok) {
+            throw new Error(`builder HTTP ${built.response.status}: ${built.data.error || built.data.code || 'unknown_error'}`);
+          }
+          if (built.data.mode !== 'live') throw new Error(`builder mode inválido: ${built.data.mode}`);
+          if (built.data.provider !== 'groq') throw new Error(`builder provider inválido: ${built.data.provider}`);
+          if (!Array.isArray(built.data.capabilities) || built.data.capabilities.length !== 100) {
+            throw new Error(`builder capability count inválido: ${built.data.capabilities?.length}`);
+          }
+          if (!built.data.project || built.data.project.kind !== 'static-web') throw new Error('projeto ausente ou kind inválido');
+          if (!Array.isArray(built.data.project.files) || built.data.project.files.length < 2) throw new Error('arquivos insuficientes');
+          if (!built.data.project.files.some((file) => file.path === 'index.html')) throw new Error('index.html ausente');
+
+          console.log('NEXUS_BUILDER_V3_AGENT_SMOKE_OK');
+          console.log(`planner_provider=${planned.data.provider}`);
+          console.log(`planner_model=${planned.data.model}`);
+          console.log(`project_name=${plan.projectName}`);
+          console.log(`planned_pages=${plan.pages.length}`);
+          console.log(`missing_business_data=${plan.missingBusinessData?.length || 0}`);
+          console.log(`builder_provider=${built.data.provider}`);
+          console.log(`builder_model=${built.data.model}`);
+          console.log(`capability_count=${built.data.capabilities.length}`);
+          console.log(`generation_path=${built.data.generationPath}`);
+          console.log(`files=${built.data.project.files.map((file) => file.path).join(',')}`);
+          NODE
