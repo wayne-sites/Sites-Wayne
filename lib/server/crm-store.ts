@@ -1,5 +1,6 @@
 import "server-only";
 import { fetchSafeGet, fetchWithTimeout } from "@/lib/server/http";
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/server/supabase-env";
 import type { CrmPriority, CrmStage, ParsedCrmLead } from "@/lib/crm";
 
 export type CrmLead = ParsedCrmLead & {
@@ -29,8 +30,8 @@ export type CrmFollowupTask = {
 };
 
 function config() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = getSupabaseUrl();
+  const key = getSupabaseSecretKey();
   if (!url || !key) throw new Error("crm_supabase_not_configured");
   return { url, key };
 }
