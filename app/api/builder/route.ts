@@ -101,11 +101,31 @@ function generationContext(
   ].join("\n\n");
 }
 
+function recoveryContext(projectType: string, visualStyle: string, capabilityCount: number) {
+  return [
+    `Tipo de projeto: ${PROJECT_TYPES.get(projectType)}.`,
+    `Direção visual: ${VISUAL_STYLES.get(visualStyle)}.`,
+    `Foram solicitados ${capabilityCount} módulos de qualidade. Priorize responsividade, acessibilidade, SEO básico, performance, segurança, clareza de conteúdo e conversão sem inventar dados reais.`,
+  ].join("\n");
+}
+
 function supportsStrictGroqOutput(provider: AIProviderConfig) {
   return provider.name === "groq" && (
     provider.model === "openai/gpt-oss-20b" ||
     provider.model === "openai/gpt-oss-120b"
   );
+}
+
+function providerStatus(error: unknown) {
+  if (!error || typeof error !== "object" || !("status" in error)) return 0;
+  return Number((error as { status?: number }).status) || 0;
+}
+
+function isRecoverableGenerationError(error: unknown) {
+  const status = providerStatus(error);
+  if (status === 400 || status === 408 || status === 429 || status >= 500) return true;
+  if (!(error instanceof Error)) return false;
+  return error.message === "provider_empty" || error.message.startsWith("builder_") || /timeout/i.test(error.message);
 }
 
 async function providerCompletion(
@@ -195,6 +215,92 @@ function buildSingleFileProject(rawHtml: string) {
   });
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function buildLocalFallbackProject(brief: string, projectType: string, visualStyle: string) {
+  const safeBrief = escapeHtml(brief.slice(0, 1800));
+  const typeLabel = PROJECT_TYPES.get(projectType) || "site web";
+  const styleLabel = VISUAL_STYLES.get(visualStyle) || "moderno";
+  const title = "Projeto Nexus";
+  const html = `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Projeto web gerado pelo Nexus Builder em modo de recuperação local.">
+  <title>${title}</title>
+  <style>
+    :root{font-family:Inter,system-ui,sans-serif;color-scheme:dark;background:#0a0d12;color:#eef2f7}*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#0a0d12,#111827);min-height:100vh}main{width:min(980px,92vw);margin:auto;padding:64px 0}section{background:#111827;border:1px solid #263244;border-radius:22px;padding:28px;margin:18px 0}h1{font-size:clamp(2.2rem,7vw,4.8rem);line-height:.95;margin:0 0 20px}h2{margin-top:0}p{color:#c5d0df;line-height:1.7}.tag{display:inline-block;border:1px solid #3d506b;border-radius:999px;padding:8px 12px;margin-bottom:20px}.cta{display:inline-block;margin-top:12px;padding:13px 18px;border-radius:12px;background:#eef2f7;color:#0a0d12;text-decoration:none;font-weight:700}@media(max-width:640px){main{padding:36px 0}section{padding:22px}}
+  </style>
+</head>
+<body>
+  <main>
+    <span class="tag">Nexus Builder • recuperação automática</span>
+    <h1>${title}</h1>
+    <p>Base funcional criada automaticamente quando o provedor de IA não concluiu a saída estruturada.</p>
+    <section><h2>Objetivo informado</h2><p>${safeBrief}</p></section>
+    <section><h2>Direção do projeto</h2><p>Formato: ${escapeHtml(typeLabel)}. Estilo: ${escapeHtml(styleLabel)}. Esta versão preserva uma base responsiva, sem integrações externas e sem inventar dados comerciais.</p><a class="cta" href="#proximos">Continuar edição</a></section>
+    <section id="proximos"><h2>Próximos ajustes</h2><p>Substitua placeholders por dados reais, refine conteúdo e gere novamente quando o provider estiver disponível para obter a versão completa assistida por IA.</p></section>
+  </main>
+</body>
+</html>`;
+
+  return validateBuilderProject({
+    name: title,
+    kind: "static-web",
+    summary: "Pacote estático seguro criado pelo fallback local do Nexus Builder.",
+    stack: ["HTML", "CSS"],
+    features: ["Responsivo", "Sem dependências externas", "Fallback local seguro"],
+    howToRun: "Abra index.html diretamente em um navegador moderno.",
+    files: [
+      { path: "index.html", content: html },
+      {
+        path: "README.md",
+        content: [
+          `# ${title}`,
+          "",
+          "Gerado pelo fallback local do Nexus Builder porque o provider não concluiu a geração principal.",
+          "",
+          "## Pedido original",
+          brief.slice(0, 1800),
+          "",
+          "## Como executar",
+          "Abra `index.html` diretamente no navegador.",
+        ].join("\n"),
+      },
+    ],
+  });
+}
+
+async function htmlRecovery(
+  provider: AIProviderConfig,
+  brief: string,
+  projectType: string,
+  visualStyle: string,
+  capabilityCount: number,
+) {
+  const fallback = await providerCompletion(
+    provider,
+    [
+      { role: "system", content: singleFileFallbackPrompt },
+      {
+        role: "user",
+        content: `Crie o site completo para este pedido:\n\n${brief}\n\n${recoveryContext(projectType, visualStyle, capabilityCount)}`,
+      },
+    ],
+    0.15,
+    { maxTokens: 2600 },
+  );
+  return buildSingleFileProject(fallback);
+}
+
 export async function POST(request: NextRequest) {
   const id = requestId(request);
   if (!isSameOrigin(request)) {
@@ -258,69 +364,98 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const first = await providerCompletion(
-      provider,
-      [
-        { role: "system", content: builderSystemPrompt },
-        {
-          role: "user",
-          content: `Crie um projeto completo para este pedido:\n\n${brief}\n\n${context}\n\nEntregue somente o JSON no schema exigido.`,
-        },
-      ],
-      0.2,
-      { structured: true, maxTokens: capabilityIds.length > 60 ? 3000 : 3400 },
-    );
-
     let project;
-    let generationPath: "structured" | "repaired" | "html-fallback" = "structured";
+    let generationPath: "structured" | "repaired" | "html-fallback" | "local-fallback" = "structured";
+    let first: string | null = null;
+
     try {
-      project = parseProject(first);
-    } catch (firstError) {
-      log("warn", "nexus-builder", "first_manifest_invalid", {
+      first = await providerCompletion(
+        provider,
+        [
+          { role: "system", content: builderSystemPrompt },
+          {
+            role: "user",
+            content: `Crie um projeto completo para este pedido:\n\n${brief}\n\n${context}\n\nEntregue somente o JSON no schema exigido.`,
+          },
+        ],
+        0.2,
+        { structured: true, maxTokens: capabilityIds.length > 60 ? 3000 : 3400 },
+      );
+    } catch (structuredError) {
+      if (!isRecoverableGenerationError(structuredError)) throw structuredError;
+      log("warn", "nexus-builder", "structured_generation_failed_using_recovery", {
         requestId: id,
         provider: provider.name,
-        error: firstError,
+        status: providerStatus(structuredError) || undefined,
+        error: structuredError,
       });
-
       try {
-        const repaired = await providerCompletion(
-          provider,
-          [
-            {
-              role: "system",
-              content: `${builderSystemPrompt} Corrija a saída fornecida para cumprir exatamente o schema e as restrições.`,
-            },
-            {
-              role: "user",
-              content: `Pedido original:\n${brief}\n\n${context}\n\nSaída inválida a corrigir:\n${first.slice(0, 30_000)}`,
-            },
-          ],
-          0,
-          { structured: true, maxTokens: 3000 },
-        );
-        project = parseProject(repaired);
-        generationPath = "repaired";
-      } catch (repairError) {
-        log("warn", "nexus-builder", "manifest_repair_failed_using_html_fallback", {
+        project = await htmlRecovery(provider, brief, projectType, visualStyle, capabilityIds.length);
+        generationPath = "html-fallback";
+      } catch (fallbackError) {
+        if (!isRecoverableGenerationError(fallbackError)) throw fallbackError;
+        log("warn", "nexus-builder", "provider_recovery_failed_using_local_fallback", {
           requestId: id,
           provider: provider.name,
-          error: repairError,
+          status: providerStatus(fallbackError) || undefined,
+          error: fallbackError,
+        });
+        project = buildLocalFallbackProject(brief, projectType, visualStyle);
+        generationPath = "local-fallback";
+      }
+    }
+
+    if (first) {
+      try {
+        project = parseProject(first);
+      } catch (firstError) {
+        log("warn", "nexus-builder", "first_manifest_invalid", {
+          requestId: id,
+          provider: provider.name,
+          error: firstError,
         });
 
-        const fallback = await providerCompletion(
-          provider,
-          [
-            { role: "system", content: singleFileFallbackPrompt },
-            {
-              role: "user",
-              content: `Crie o site completo para este pedido:\n\n${brief}\n\n${context}`,
-            },
-          ],
-          0.15,
-          { maxTokens: 2800 },
-        );
-        project = buildSingleFileProject(fallback);
-        generationPath = "html-fallback";
+        try {
+          const repaired = await providerCompletion(
+            provider,
+            [
+              {
+                role: "system",
+                content: `${builderSystemPrompt} Corrija a saída fornecida para cumprir exatamente o schema e as restrições.`,
+              },
+              {
+                role: "user",
+                content: `Pedido original:\n${brief}\n\n${context}\n\nSaída inválida a corrigir:\n${first.slice(0, 30_000)}`,
+              },
+            ],
+            0,
+            { structured: true, maxTokens: 3000 },
+          );
+          project = parseProject(repaired);
+          generationPath = "repaired";
+        } catch (repairError) {
+          if (!isRecoverableGenerationError(repairError)) throw repairError;
+          log("warn", "nexus-builder", "manifest_repair_failed_using_html_fallback", {
+            requestId: id,
+            provider: provider.name,
+            status: providerStatus(repairError) || undefined,
+            error: repairError,
+          });
+          try {
+            project = await htmlRecovery(provider, brief, projectType, visualStyle, capabilityIds.length);
+            generationPath = "html-fallback";
+          } catch (fallbackError) {
+            if (!isRecoverableGenerationError(fallbackError)) throw fallbackError;
+            log("warn", "nexus-builder", "html_fallback_failed_using_local_fallback", {
+              requestId: id,
+              provider: provider.name,
+              status: providerStatus(fallbackError) || undefined,
+              error: fallbackError,
+            });
+            project = buildLocalFallbackProject(brief, projectType, visualStyle);
+            generationPath = "local-fallback";
+          }
+        }
       }
     }
 
@@ -337,7 +472,7 @@ export async function POST(request: NextRequest) {
       requestId: id,
     });
   } catch (error) {
-    const status = error instanceof Error && "status" in error ? Number((error as Error & { status?: number }).status) : 0;
+    const status = providerStatus(error);
     log("warn", "nexus-builder", "generation_failed", {
       requestId: id,
       provider: provider.name,
@@ -353,14 +488,14 @@ export async function POST(request: NextRequest) {
     }
     if (status === 429) {
       return NextResponse.json(
-        { error: "O provedor de IA atingiu o limite temporário. Tente novamente em instantes.", code: "provider_rate_limited", requestId: id },
+        { error: "O provedor de IA atingiu o limite temporário e a recuperação automática não pôde concluir.", code: "provider_rate_limited", requestId: id },
         { status: 503 },
       );
     }
 
     return NextResponse.json(
       {
-        error: "O Builder não conseguiu gerar um pacote válido desta vez. Tente simplificar o pedido.",
+        error: "O Builder encontrou uma falha interna antes de concluir a recuperação automática.",
         code: "builder_generation_failed",
         requestId: id,
       },
