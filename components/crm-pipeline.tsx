@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { CrmLead } from "@/lib/server/crm-store";
-import { crmPriorities, crmStages, type CrmPriority, type CrmStage } from "@/lib/crm";
+import { crmPriorities, crmStages, getCrmFollowupState, type CrmFollowupState, type CrmPriority, type CrmStage } from "@/lib/crm";
 import styles from "./crm-pipeline.module.css";
 
 const stageLabels: Record<CrmStage, string> = {
@@ -15,6 +15,12 @@ const stageLabels: Record<CrmStage, string> = {
 };
 
 const priorityLabels: Record<CrmPriority, string> = { baixa: "Baixa", normal: "Normal", alta: "Alta" };
+const followupLabels: Record<CrmFollowupState, string> = {
+  none: "Sem tarefa",
+  scheduled: "Agendado",
+  due: "Vence em até 24h",
+  overdue: "Vencido",
+};
 
 function brl(cents: number | null) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((cents || 0) / 100);
@@ -50,10 +56,14 @@ export function CrmPipeline({ initialLeads }: { initialLeads: CrmLead[] }) {
     const active = leads.filter((lead) => !["ganho", "perdido"].includes(lead.stage));
     const won = leads.filter((lead) => lead.stage === "ganho");
     const negotiating = leads.filter((lead) => ["proposta", "negociacao"].includes(lead.stage));
+    const followupAlerts = active.filter((lead) => ["due", "overdue"].includes(getCrmFollowupState(lead.next_followup_at)));
+    const overdue = active.filter((lead) => getCrmFollowupState(lead.next_followup_at) === "overdue");
     return {
       total: leads.length,
       active: active.length,
       negotiating: negotiating.length,
+      followupAlerts: followupAlerts.length,
+      overdue: overdue.length,
       wonValue: won.reduce((sum, lead) => sum + (lead.estimated_value_cents || 0), 0),
     };
   }, [leads]);
@@ -83,6 +93,7 @@ export function CrmPipeline({ initialLeads }: { initialLeads: CrmLead[] }) {
         <article><span>LEADS</span><strong>{metrics.total}</strong><small>Total capturado</small></article>
         <article><span>ATIVOS</span><strong>{metrics.active}</strong><small>Em andamento</small></article>
         <article><span>PIPELINE</span><strong>{metrics.negotiating}</strong><small>Proposta + negociação</small></article>
+        <article><span>FOLLOW-UP</span><strong>{metrics.followupAlerts}</strong><small>{metrics.overdue} vencido(s)</small></article>
         <article><span>GANHO</span><strong>{brl(metrics.wonValue)}</strong><small>Valor estimado ganho</small></article>
       </section>
 
@@ -114,6 +125,7 @@ function LeadCard({ lead, saving, onUpdate }: { lead: CrmLead; saving: boolean; 
   const [followup, setFollowup] = useState(toLocalInput(lead.next_followup_at));
   const [notes, setNotes] = useState(lead.notes || "");
   const href = contactHref(lead);
+  const followupState = getCrmFollowupState(lead.next_followup_at);
 
   async function saveDetails() {
     const normalized = value.trim().replace(",", ".");
@@ -125,6 +137,11 @@ function LeadCard({ lead, saving, onUpdate }: { lead: CrmLead; saving: boolean; 
       next_followup_at: followup ? new Date(followup).toISOString() : null,
       notes,
     });
+  }
+
+  async function completeFollowup() {
+    await onUpdate(lead.id, { complete_followup: true });
+    setFollowup("");
   }
 
   return (
@@ -140,11 +157,12 @@ function LeadCard({ lead, saving, onUpdate }: { lead: CrmLead; saving: boolean; 
         <span><b>Origem</b>{lead.utm_source || lead.source}</span>
         <span><b>Valor</b>{brl(lead.estimated_value_cents)}</span>
         <span><b>Follow-up</b>{localDate(lead.next_followup_at)}</span>
+        <span><b>Alerta</b><em className={`${styles.followupState} ${styles[followupState]}`}>{followupLabels[followupState]}</em></span>
       </div>
 
       <div className={styles.actions}>
         {href ? <a href={href} target={lead.contact_kind === "whatsapp" ? "_blank" : undefined} rel="noreferrer">CONTATAR</a> : <span className={styles.contactText}>{lead.contact}</span>}
-        <button type="button" disabled={saving} onClick={() => onUpdate(lead.id, { last_contacted_at: new Date().toISOString() })}>MARCAR CONTATO</button>
+        <button type="button" disabled={saving || !lead.next_followup_at} onClick={completeFollowup}>CONCLUIR FOLLOW-UP</button>
       </div>
 
       <div className={styles.controls}>
