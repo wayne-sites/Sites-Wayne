@@ -13,6 +13,7 @@ export const portalNavigation = [
   { label: "Vídeos", icon: "▶", href: "/videos" },
   { label: "Nexus IA", icon: "✦", href: "/ia" },
   { label: "Studio", icon: "+", href: "/studio" },
+  { label: "Tools", icon: "⊞", href: "/tools" },
   { label: "Builder", icon: "◆", href: "/builder" },
   { label: "Automações", icon: "⚙", href: "/automacoes" },
   { label: "Soluções", icon: "▦", href: "/solucoes-corporativas" },
