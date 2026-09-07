@@ -80,7 +80,10 @@ export async function getCrmProposalById(id: string) {
 
 export async function getCrmProposalByPublicId(publicId: string) {
   const rows = await request<CrmProposal[]>(`crm_proposals?public_id=eq.${encodeURIComponent(publicId)}&select=*,items:crm_proposal_items(*),lead:crm_leads(id,name,business,contact,contact_kind)&limit=1`);
-  return rows[0] || null;
+  const proposal = rows[0] || null;
+  if (!proposal || proposal.status !== "ready" || new Date(proposal.valid_until).getTime() >= Date.now()) return proposal;
+  const updated = await updateCrmProposal(proposal.id, { status: "expired" });
+  return updated ? { ...proposal, ...updated, items: proposal.items, lead: proposal.lead } : proposal;
 }
 
 export async function approveCrmProposal(publicId: string, approverName: string) {
@@ -101,10 +104,11 @@ export async function updateCrmProposal(id: string, patch: Partial<Pick<CrmPropo
 }
 
 export async function rejectCrmProposal(publicId: string) {
+  const now = new Date().toISOString();
   const rows = await request<CrmProposal[]>(`crm_proposals?public_id=eq.${encodeURIComponent(publicId)}&status=eq.ready`, {
     method: "PATCH",
     headers: { Prefer: "return=representation" },
-    body: JSON.stringify({ status: "rejected", rejected_at: new Date().toISOString(), updated_at: new Date().toISOString() }),
+    body: JSON.stringify({ status: "rejected", rejected_at: now, updated_at: now }),
   });
   return rows[0] || null;
 }
