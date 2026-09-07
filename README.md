@@ -116,3 +116,5 @@ supabase/migrations/ banco PostgreSQL e RLS
 docs/                arquitetura e auditoria técnica
 .env.example         variáveis necessárias
 ```
+
+> Estado desta implementação: CRM e novos módulos estão no PR #26 e em Vercel Preview; não foram mesclados à `main` nem liberados em produção.
