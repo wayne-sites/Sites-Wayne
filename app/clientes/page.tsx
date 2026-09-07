@@ -5,6 +5,7 @@ import { ModuleShell } from "@/components/module-shell";
 import { CrmPipeline } from "@/components/crm-pipeline";
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { isCrmAdmin, listCrmLeads } from "@/lib/server/crm-store";
+import { listCrmProposals } from "@/lib/server/crm-proposals";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -40,10 +41,11 @@ export default async function ClientsPipelinePage() {
   }
 
   let leads;
-  try { leads = await listCrmLeads(200); }
+  let proposals;
+  try { [leads, proposals] = await Promise.all([listCrmLeads(200), listCrmProposals(200)]); }
   catch {
     return (
-      <ModuleShell active="/clientes" eyebrow="NEXUS • CRM" title="Não foi possível carregar o pipeline." description="Sua autorização foi confirmada, mas a consulta de leads falhou.">
+      <ModuleShell active="/clientes" eyebrow="NEXUS • CRM" title="Não foi possível carregar o pipeline." description="Sua autorização foi confirmada, mas a consulta comercial falhou.">
         <p>Os dados permanecem protegidos. Verifique a disponibilidade do Supabase e recarregue esta página.</p>
       </ModuleShell>
     );
@@ -54,10 +56,10 @@ export default async function ClientsPipelinePage() {
       active="/clientes"
       eyebrow={`NEXUS • CRM • ${admin.role.toUpperCase()}`}
       title="Pipeline comercial."
-      description="Leads reais, estágio, prioridade, valor estimado e follow-up em uma única operação privada. Nenhuma mensagem é enviada automaticamente por este painel."
+      description="Leads, follow-ups e propostas em uma operação privada. Aprovação e pagamento não transformam receita em ganho até o webhook confirmar a transação."
       action={<div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}><Link className="primary-button" href="/solucoes-corporativas">CAPTAR NOVO LEAD <span>→</span></Link><Link href="/plano-de-acao">Plano de Ação</Link></div>}
     >
-      <CrmPipeline initialLeads={leads} />
+      <CrmPipeline initialLeads={leads} initialProposals={proposals} />
     </ModuleShell>
   );
 }
