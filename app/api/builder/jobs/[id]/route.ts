@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBuilderAgentJob, hashBuilderJobToken } from "@/lib/builder/job-store";
-import { secureCompare } from "@/lib/server/http";
+import { getBuilderAgentJobStatus, hashBuilderJobToken } from "@/lib/builder/job-store";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,11 +13,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   try {
-    const job = await getBuilderAgentJob(id);
-    if (!job) return NextResponse.json({ error: "Job não encontrado." }, { status: 404 });
-    if (!secureCompare(job.status_token_hash, hashBuilderJobToken(token))) {
-      return NextResponse.json({ error: "Acesso ao job não autorizado." }, { status: 401 });
-    }
+    const job = await getBuilderAgentJobStatus(id, hashBuilderJobToken(token));
+    if (!job) return NextResponse.json({ error: "Job não encontrado ou acesso inválido." }, { status: 404 });
 
     return NextResponse.json({
       id: job.id,
