@@ -1,0 +1,1 @@
+document.documentElement.dataset.phase2Autonomous = "ok";

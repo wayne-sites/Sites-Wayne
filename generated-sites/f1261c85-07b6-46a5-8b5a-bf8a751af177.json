@@ -1,0 +1,10 @@
+{
+  "format": "nexus-builder-agent/v3-phase2",
+  "jobId": "f1261c85-07b6-46a5-8b5a-bf8a751af177",
+  "projectName": "Nexus Builder Phase 2 Autonomous Smoke",
+  "publishSlug": "nexus-builder-phase2-auto-smoke",
+  "provider": "system-smoke",
+  "model": "none",
+  "generationPath": "controlled",
+  "generatedPath": "/generated/nexus-builder-phase2-auto-smoke/index.html"
+}

@@ -1,0 +1,1 @@
+# Nexus Builder Phase 2 Autonomous Smoke\n\nValida o fluxo autônomo até Vercel Preview mesmo quando a política do GitHub bloqueia PR pelo Actions.\n
