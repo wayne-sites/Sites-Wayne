@@ -13,6 +13,11 @@ function enabled(name: string) {
   return process.env[name]?.trim().toLowerCase() === "true";
 }
 
+function enabledUnlessExplicitlyDisabled(name: string) {
+  const value = process.env[name]?.trim().toLowerCase();
+  return value === undefined || value === "" ? true : value === "true";
+}
+
 function watchStatus(): FeatureStatus {
   const base = status("NEXUS_WATCH_ENABLED", ["TMDB_ACCESS_TOKEN", "NEXT_PUBLIC_TMDB_LOGO_URL"]);
   const licensed = enabled("TMDB_COMMERCIAL_APPROVED");
@@ -28,7 +33,7 @@ function authStatus(): FeatureStatus {
   const missing: string[] = [];
   if (!getSupabaseUrl()) missing.push("SUPABASE_URL");
   if (!getSupabasePublishableKey()) missing.push("SUPABASE_PUBLISHABLE_KEY");
-  const isEnabled = enabled("AUTH_ENABLED");
+  const isEnabled = enabledUnlessExplicitlyDisabled("AUTH_ENABLED");
   return { enabled: isEnabled, ready: isEnabled && missing.length === 0, missing };
 }
 
