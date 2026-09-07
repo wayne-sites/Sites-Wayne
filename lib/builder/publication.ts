@@ -1,4 +1,4 @@
-import { validateBuilderProject, type BuilderProject } from "@/lib/builder/manifest";
+import { validateBuilderProject, type BuilderProject } from "./manifest.ts";
 
 export type BuilderAgentJobStatus =
   | "queued"
