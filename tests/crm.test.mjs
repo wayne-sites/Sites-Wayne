@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseCrmLeadInput, parseCrmLeadPatchInput } from "../lib/crm.ts";
+import { getCrmFollowupState, parseCrmLeadInput, parseCrmLeadPatchInput } from "../lib/crm.ts";
 
 const validLead = {
   source: "solucoes-corporativas",
@@ -51,11 +51,28 @@ test("pipeline aceita somente campos e estados controlados", () => {
   });
   assert.equal(result.ok, true);
   if (result.ok) {
+    assert.equal(result.data.complete_followup, false);
     assert.equal(result.data.patch.stage, "proposta");
     assert.equal(result.data.patch.priority, "alta");
     assert.equal(result.data.patch.estimated_value_cents, 149700);
     assert.equal(result.data.patch.next_followup_at, "2026-09-08T17:00:00.000Z");
   }
+});
+
+test("conclusão de follow-up é uma ação isolada", () => {
+  const result = parseCrmLeadPatchInput({ id: leadId, complete_followup: true });
+  assert.equal(result.ok, true);
+  if (result.ok) assert.equal(result.data.complete_followup, true);
+  assert.equal(parseCrmLeadPatchInput({ id: leadId, complete_followup: true, stage: "proposta" }).ok, false);
+  assert.equal(parseCrmLeadPatchInput({ id: leadId, complete_followup: false }).ok, false);
+});
+
+test("alerta de follow-up distingue agendado, próximo e vencido", () => {
+  const now = new Date("2026-09-07T16:00:00.000Z");
+  assert.equal(getCrmFollowupState(null, now), "none");
+  assert.equal(getCrmFollowupState("2026-09-09T16:00:00.000Z", now), "scheduled");
+  assert.equal(getCrmFollowupState("2026-09-08T10:00:00.000Z", now), "due");
+  assert.equal(getCrmFollowupState("2026-09-07T15:59:59.000Z", now), "overdue");
 });
 
 test("pipeline recusa id, etapa, valor e patch vazio inválidos", () => {
