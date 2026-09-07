@@ -31,6 +31,32 @@ const VISUAL_STYLES = new Map([
   ["brutalist", "brutalista controlado e legível"],
 ]);
 
+const BUILDER_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    name: { type: "string" },
+    kind: { type: "string", enum: ["static-web"] },
+    summary: { type: "string" },
+    stack: { type: "array", items: { type: "string" } },
+    features: { type: "array", items: { type: "string" } },
+    howToRun: { type: "string" },
+    files: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          path: { type: "string" },
+          content: { type: "string" },
+        },
+        required: ["path", "content"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["name", "kind", "summary", "stack", "features", "howToRun", "files"],
+  additionalProperties: false,
+} as const;
+
 const builderSystemPrompt = [
   "Você é o Nexus Builder V2, um gerador de projetos web estáticos completos.",
   "Responda SOMENTE com um objeto JSON válido, sem markdown, comentários ou texto antes/depois.",
@@ -72,26 +98,49 @@ function generationContext(
   ].join("\n\n");
 }
 
+function supportsStrictGroqOutput(provider: AIProviderConfig) {
+  return provider.name === "groq" && (
+    provider.model === "openai/gpt-oss-20b" ||
+    provider.model === "openai/gpt-oss-120b"
+  );
+}
+
 async function providerCompletion(
   provider: AIProviderConfig,
   messages: Array<{ role: "system" | "user"; content: string }>,
   temperature: number,
-  maxTokens = 5000,
+  options: { maxTokens?: number; structured?: boolean } = {},
 ) {
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (provider.apiKey) headers.authorization = `Bearer ${provider.apiKey}`;
+
+  const payload: Record<string, unknown> = {
+    model: provider.model,
+    temperature,
+    max_tokens: options.maxTokens ?? 3200,
+    messages,
+  };
+
+  if (supportsStrictGroqOutput(provider)) {
+    payload.reasoning_effort = "low";
+    if (options.structured) {
+      payload.response_format = {
+        type: "json_schema",
+        json_schema: {
+          name: "nexus_builder_project",
+          strict: true,
+          schema: BUILDER_RESPONSE_SCHEMA,
+        },
+      };
+    }
+  }
 
   const response = await fetchWithTimeout(
     provider.apiUrl,
     {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        model: provider.model,
-        temperature,
-        max_tokens: maxTokens,
-        messages,
-      }),
+      body: JSON.stringify(payload),
     },
     35_000,
   );
@@ -215,7 +264,8 @@ export async function POST(request: NextRequest) {
           content: `Crie um projeto completo para este pedido:\n\n${brief}\n\n${context}\n\nEntregue somente o JSON no schema exigido.`,
         },
       ],
-      0.25,
+      0.2,
+      { structured: true, maxTokens: capabilityIds.length > 60 ? 3000 : 3400 },
     );
 
     let project;
@@ -243,6 +293,7 @@ export async function POST(request: NextRequest) {
             },
           ],
           0,
+          { structured: true, maxTokens: 3000 },
         );
         project = parseProject(repaired);
         generationPath = "repaired";
@@ -262,8 +313,8 @@ export async function POST(request: NextRequest) {
               content: `Crie o site completo para este pedido:\n\n${brief}\n\n${context}`,
             },
           ],
-          0.2,
-          3500,
+          0.15,
+          { maxTokens: 2800 },
         );
         project = buildSingleFileProject(fallback);
         generationPath = "html-fallback";
