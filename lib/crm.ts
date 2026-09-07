@@ -8,6 +8,7 @@ export type CrmLeadSource = (typeof crmLeadSources)[number];
 export type CrmStage = (typeof crmStages)[number];
 export type CrmPriority = (typeof crmPriorities)[number];
 export type CrmContactKind = "email" | "whatsapp" | "other";
+export type CrmFollowupState = "none" | "scheduled" | "due" | "overdue";
 
 export type ParsedCrmLead = {
   source: CrmLeadSource;
@@ -24,6 +25,7 @@ export type ParsedCrmLead = {
 
 export type ParsedCrmLeadPatch = {
   id: string;
+  complete_followup: boolean;
   patch: Partial<{
     stage: CrmStage;
     priority: CrmPriority;
@@ -59,6 +61,16 @@ function parseDateOrNull(value: unknown) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return undefined;
   return date.toISOString();
+}
+
+export function getCrmFollowupState(value: string | null, now = new Date()): CrmFollowupState {
+  if (!value) return "none";
+  const due = new Date(value);
+  if (!Number.isFinite(due.getTime())) return "none";
+  const delta = due.getTime() - now.getTime();
+  if (delta <= 0) return "overdue";
+  if (delta <= 24 * 60 * 60 * 1000) return "due";
+  return "scheduled";
 }
 
 export function parseCrmLeadInput(value: unknown): { ok: true; data: ParsedCrmLead } | { ok: false; error: string } {
@@ -103,6 +115,12 @@ export function parseCrmLeadPatchInput(value: unknown): { ok: true; data: Parsed
   if (!isUuid(input.id)) return { ok: false, error: "Lead inválido." };
 
   const patch: ParsedCrmLeadPatch["patch"] = {};
+  let completeFollowup = false;
+
+  if (input.complete_followup !== undefined) {
+    if (input.complete_followup !== true) return { ok: false, error: "Ação de follow-up inválida." };
+    completeFollowup = true;
+  }
 
   if (input.stage !== undefined) {
     if (typeof input.stage !== "string" || !(crmStages as readonly string[]).includes(input.stage)) return { ok: false, error: "Etapa inválida." };
@@ -141,6 +159,7 @@ export function parseCrmLeadPatchInput(value: unknown): { ok: true; data: Parsed
     }
   }
 
-  if (Object.keys(patch).length === 0) return { ok: false, error: "Nenhuma alteração informada." };
-  return { ok: true, data: { id: input.id, patch } };
+  if (completeFollowup && Object.keys(patch).length > 0) return { ok: false, error: "Conclua o follow-up separadamente das outras alterações." };
+  if (Object.keys(patch).length === 0 && !completeFollowup) return { ok: false, error: "Nenhuma alteração informada." };
+  return { ok: true, data: { id: input.id, complete_followup: completeFollowup, patch } };
 }
