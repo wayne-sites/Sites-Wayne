@@ -1,4 +1,4 @@
-import { isUuid } from "@/lib/validation";
+import { isUuid } from "./validation.ts";
 
 export const crmLeadSources = ["solucoes-corporativas", "servicos", "auditoria", "builder", "manual"] as const;
 export const crmStages = ["novo", "qualificado", "proposta", "negociacao", "ganho", "perdido"] as const;
