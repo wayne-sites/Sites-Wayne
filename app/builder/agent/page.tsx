@@ -1,3 +1,3 @@
-import { NexusBuilderAgentPage } from "@/components/nexus-builder-agent-page";
+import { NexusBuilderAgentPhase2Page } from "@/components/nexus-builder-agent-phase2-page";
 
-export default NexusBuilderAgentPage;
+export default NexusBuilderAgentPhase2Page;
