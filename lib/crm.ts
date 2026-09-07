@@ -1,5 +1,12 @@
+import { isUuid } from "@/lib/validation";
+
 export const crmLeadSources = ["solucoes-corporativas", "servicos", "auditoria", "builder", "manual"] as const;
+export const crmStages = ["novo", "qualificado", "proposta", "negociacao", "ganho", "perdido"] as const;
+export const crmPriorities = ["baixa", "normal", "alta"] as const;
+
 export type CrmLeadSource = (typeof crmLeadSources)[number];
+export type CrmStage = (typeof crmStages)[number];
+export type CrmPriority = (typeof crmPriorities)[number];
 export type CrmContactKind = "email" | "whatsapp" | "other";
 
 export type ParsedCrmLead = {
@@ -13,6 +20,18 @@ export type ParsedCrmLead = {
   utm_source: string | null;
   utm_medium: string | null;
   utm_campaign: string | null;
+};
+
+export type ParsedCrmLeadPatch = {
+  id: string;
+  patch: Partial<{
+    stage: CrmStage;
+    priority: CrmPriority;
+    estimated_value_cents: number | null;
+    next_followup_at: string | null;
+    last_contacted_at: string | null;
+    notes: string | null;
+  }>;
 };
 
 function cleanText(value: unknown, min: number, max: number) {
@@ -32,6 +51,14 @@ function detectContactKind(contact: string): CrmContactKind {
   const digits = contact.replace(/\D/g, "");
   if (digits.length >= 10 && digits.length <= 15) return "whatsapp";
   return "other";
+}
+
+function parseDateOrNull(value: unknown) {
+  if (value === null || value === "") return null;
+  if (typeof value !== "string" || value.length > 80) return undefined;
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return undefined;
+  return date.toISOString();
 }
 
 export function parseCrmLeadInput(value: unknown): { ok: true; data: ParsedCrmLead } | { ok: false; error: string } {
@@ -68,4 +95,52 @@ export function parseCrmLeadInput(value: unknown): { ok: true; data: ParsedCrmLe
       utm_campaign,
     },
   };
+}
+
+export function parseCrmLeadPatchInput(value: unknown): { ok: true; data: ParsedCrmLeadPatch } | { ok: false; error: string } {
+  if (!value || typeof value !== "object") return { ok: false, error: "Atualização inválida." };
+  const input = value as Record<string, unknown>;
+  if (!isUuid(input.id)) return { ok: false, error: "Lead inválido." };
+
+  const patch: ParsedCrmLeadPatch["patch"] = {};
+
+  if (input.stage !== undefined) {
+    if (typeof input.stage !== "string" || !(crmStages as readonly string[]).includes(input.stage)) return { ok: false, error: "Etapa inválida." };
+    patch.stage = input.stage as CrmStage;
+  }
+
+  if (input.priority !== undefined) {
+    if (typeof input.priority !== "string" || !(crmPriorities as readonly string[]).includes(input.priority)) return { ok: false, error: "Prioridade inválida." };
+    patch.priority = input.priority as CrmPriority;
+  }
+
+  if (input.estimated_value_cents !== undefined) {
+    if (input.estimated_value_cents === null) patch.estimated_value_cents = null;
+    else if (Number.isInteger(input.estimated_value_cents) && Number(input.estimated_value_cents) >= 0 && Number(input.estimated_value_cents) <= 1_000_000_000) patch.estimated_value_cents = Number(input.estimated_value_cents);
+    else return { ok: false, error: "Valor estimado inválido." };
+  }
+
+  if (input.next_followup_at !== undefined) {
+    const parsed = parseDateOrNull(input.next_followup_at);
+    if (parsed === undefined) return { ok: false, error: "Data de follow-up inválida." };
+    patch.next_followup_at = parsed;
+  }
+
+  if (input.last_contacted_at !== undefined) {
+    const parsed = parseDateOrNull(input.last_contacted_at);
+    if (parsed === undefined) return { ok: false, error: "Data de contato inválida." };
+    patch.last_contacted_at = parsed;
+  }
+
+  if (input.notes !== undefined) {
+    if (input.notes === null || input.notes === "") patch.notes = null;
+    else {
+      const notes = cleanText(input.notes, 1, 5000);
+      if (!notes) return { ok: false, error: "Notas inválidas." };
+      patch.notes = notes;
+    }
+  }
+
+  if (Object.keys(patch).length === 0) return { ok: false, error: "Nenhuma alteração informada." };
+  return { ok: true, data: { id: input.id, patch } };
 }
