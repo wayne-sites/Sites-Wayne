@@ -24,9 +24,14 @@ export function GET() {
   } as const;
   const features = publicFeatureSummary();
   const limited = checks.database === "inactive" || checks.payments === "inactive";
+  const build = {
+    commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) || null,
+    environment: process.env.VERCEL_ENV || null,
+  };
   return NextResponse.json({
     status: limited ? "limited" : "operational",
     timestamp: new Date().toISOString(),
+    build,
     checks,
     integrations: { supabase, payments },
     features,
