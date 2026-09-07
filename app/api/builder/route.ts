@@ -37,11 +37,13 @@ const BUILDER_RESPONSE_SCHEMA = {
     name: { type: "string" },
     kind: { type: "string", enum: ["static-web"] },
     summary: { type: "string" },
-    stack: { type: "array", items: { type: "string" } },
-    features: { type: "array", items: { type: "string" } },
+    stack: { type: "array", maxItems: 8, items: { type: "string" } },
+    features: { type: "array", maxItems: 10, items: { type: "string" } },
     howToRun: { type: "string" },
     files: {
       type: "array",
+      minItems: 1,
+      maxItems: 10,
       items: {
         type: "object",
         properties: {
@@ -62,6 +64,7 @@ const builderSystemPrompt = [
   "Responda SOMENTE com um objeto JSON válido, sem markdown, comentários ou texto antes/depois.",
   "O projeto deve funcionar abrindo index.html diretamente no navegador, sem build, npm, backend ou servidor.",
   "Gere no máximo 10 arquivos usando apenas HTML, CSS, JavaScript, JSON, Markdown ou TXT.",
+  "Use no máximo 8 itens em stack e no máximo 10 itens em features.",
   "Use caminhos relativos simples. Sempre inclua index.html e README.md.",
   "Priorize interface responsiva, acessibilidade, boa UX e código legível.",
   "Não inclua chaves, tokens, credenciais, .env, dados privados, trackers, mineração, pagamentos, downloads executáveis, shell, PowerShell, batch ou ações de deploy.",
