@@ -1,0 +1,308 @@
+name: Nexus Builder Agent Worker
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/nexus-builder-agent-worker.yml"
+      - "app/api/builder/publish/**"
+      - "app/api/builder/jobs/**"
+      - "app/api/builder/worker/**"
+      - "lib/builder/**"
+      - "supabase/migrations/202609070001_builder_agent_phase2.sql"
+
+permissions:
+  contents: write
+  pull-requests: write
+  statuses: write
+  deployments: read
+  actions: read
+  id-token: write
+
+concurrency:
+  group: nexus-builder-agent-worker
+  cancel-in-progress: false
+
+env:
+  BUILDER_BASE_URL: https://sites-wayne.vercel.app
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: npm
+
+      - name: Claim queued Builder job with GitHub OIDC
+        id: claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          OIDC=$(curl -fsS \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
+          CLAIM=$(curl -fsS -X POST "${BUILDER_BASE_URL}/api/builder/worker/claim" \
+            -H "Authorization: Bearer ${OIDC}" \
+            -H "content-type: application/json" \
+            --data '{}')
+          printf '%s' "$CLAIM" > "${RUNNER_TEMP}/builder-claim.json"
+          JOB_ID=$(jq -r '.job.id // empty' "${RUNNER_TEMP}/builder-claim.json")
+          if [ -z "$JOB_ID" ]; then
+            echo "has_job=false" >> "$GITHUB_OUTPUT"
+            echo "Nenhum job do Nexus Builder aguardando processamento."
+            exit 0
+          fi
+          PUBLISH_SLUG=$(jq -r '.job.publishSlug' "${RUNNER_TEMP}/builder-claim.json")
+          PROJECT_NAME=$(jq -r '.job.projectName' "${RUNNER_TEMP}/builder-claim.json")
+          SHORT_ID=$(printf '%s' "$JOB_ID" | tr -d '-' | cut -c1-8)
+          BRANCH="builder-agent/${PUBLISH_SLUG}-${SHORT_ID}"
+          echo "has_job=true" >> "$GITHUB_OUTPUT"
+          echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
+          echo "publish_slug=$PUBLISH_SLUG" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "project_name=$PROJECT_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Materialize generated project
+        if: steps.claim.outputs.has_job == 'true'
+        shell: bash
+        env:
+          BRANCH: ${{ steps.claim.outputs.branch }}
+          JOB_ID: ${{ steps.claim.outputs.job_id }}
+          PUBLISH_SLUG: ${{ steps.claim.outputs.publish_slug }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            git fetch origin "$BRANCH":"refs/remotes/origin/$BRANCH"
+            git switch -C "$BRANCH" "origin/$BRANCH"
+          else
+            git switch -c "$BRANCH"
+          fi
+          CLAIM_FILE="${RUNNER_TEMP}/builder-claim.json" JOB_ID="$JOB_ID" PUBLISH_SLUG="$PUBLISH_SLUG" node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const claim = JSON.parse(fs.readFileSync(process.env.CLAIM_FILE, 'utf8'));
+          const job = claim.job;
+          const base = path.resolve('public', 'generated', process.env.PUBLISH_SLUG);
+          fs.mkdirSync(base, { recursive: true });
+          for (const file of job.project.files) {
+            const target = path.resolve(base, file.path);
+            if (target !== base && !target.startsWith(base + path.sep)) throw new Error('unsafe_materialized_path');
+            fs.mkdirSync(path.dirname(target), { recursive: true });
+            fs.writeFileSync(target, file.content, 'utf8');
+          }
+          fs.mkdirSync('generated-sites', { recursive: true });
+          fs.writeFileSync(`generated-sites/${process.env.JOB_ID}.json`, JSON.stringify({
+            format: 'nexus-builder-agent/v3-phase2',
+            jobId: job.id,
+            projectName: job.projectName,
+            publishSlug: job.publishSlug,
+            provider: job.provider,
+            model: job.model,
+            generationPath: job.generationPath,
+            generatedPath: `/generated/${job.publishSlug}/index.html`,
+          }, null, 2) + '\n');
+          NODE
+
+      - name: Validate package and repository
+        if: steps.claim.outputs.has_job == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          CLAIM_FILE="${RUNNER_TEMP}/builder-claim.json" node --experimental-strip-types --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { validatePublicationProject } from './lib/builder/publication.ts';
+          const claim = JSON.parse(fs.readFileSync(process.env.CLAIM_FILE, 'utf8'));
+          const project = validatePublicationProject(claim.job.project);
+          if (!project.files.some((file) => file.path === 'index.html')) throw new Error('index_missing');
+          console.log(`BUILDER_AGENT_PACKAGE_OK files=${project.files.length}`);
+          NODE
+          npm run verify
+          if git grep -nE '(SUPABASE_SERVICE_ROLE_KEY|MERCADO_PAGO_ACCESS_TOKEN|AI_API_KEY|GROQ_API_KEY|CLIENT_KEY)=[^[:space:]]+' -- ':!*.example'; then
+            echo "Possível segredo encontrado no repositório."
+            exit 1
+          fi
+          npm audit --omit=dev --audit-level=critical
+
+      - name: Commit and push generated branch
+        if: steps.claim.outputs.has_job == 'true'
+        id: push
+        shell: bash
+        env:
+          BRANCH: ${{ steps.claim.outputs.branch }}
+          JOB_ID: ${{ steps.claim.outputs.job_id }}
+          PROJECT_NAME: ${{ steps.claim.outputs.project_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "Nexus Builder Agent"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "public/generated/${{ steps.claim.outputs.publish_slug }}" "generated-sites/${JOB_ID}.json"
+          if ! git diff --cached --quiet; then
+            git commit -m "feat(builder-agent): preview ${PROJECT_NAME}" -m "Builder job: ${JOB_ID}. Automated Preview only; no production merge."
+            git push origin "$BRANCH"
+          fi
+          SHA=$(git rev-parse HEAD)
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Open Preview pull request
+        if: steps.claim.outputs.has_job == 'true'
+        id: pr
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.claim.outputs.branch }}
+          JOB_ID: ${{ steps.claim.outputs.job_id }}
+          PROJECT_NAME: ${{ steps.claim.outputs.project_name }}
+          SHA: ${{ steps.push.outputs.sha }}
+        run: |
+          set -euo pipefail
+          EXISTING=$(gh pr list --head "$BRANCH" --state open --json number,url --limit 1)
+          PR_URL=$(printf '%s' "$EXISTING" | jq -r '.[0].url // empty')
+          PR_NUMBER=$(printf '%s' "$EXISTING" | jq -r '.[0].number // empty')
+          if [ -z "$PR_URL" ]; then
+            cat > "${RUNNER_TEMP}/builder-pr-body.md" <<EOF
+          ## Nexus Builder Agent — Preview
+
+          - Job: \`${JOB_ID}\`
+          - Projeto: **${PROJECT_NAME}**
+          - Commit: \`${SHA}\`
+          - Gate local: \`npm run verify\` + secret scan + \`npm audit --omit=dev --audit-level=critical\`
+          - Escopo: arquivos estáticos em \`public/generated/\`
+
+          **Este PR não autoriza merge nem publicação em produção.** O Agent para no Preview.
+          EOF
+            PR_URL=$(gh pr create --base main --head "$BRANCH" \
+              --title "feat(builder-agent): Preview ${PROJECT_NAME}" \
+              --body-file "${RUNNER_TEMP}/builder-pr-body.md")
+            PR_NUMBER=${PR_URL##*/}
+          fi
+          CI_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${SHA}" \
+            -f state=success \
+            -f context='nexus-builder-agent/verify' \
+            -f description='Builder package, verify, secret scan and dependency audit passed' \
+            -f target_url="$CI_URL" >/dev/null
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "ci_url=$CI_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Record CI gate
+        if: steps.claim.outputs.has_job == 'true'
+        shell: bash
+        env:
+          JOB_ID: ${{ steps.claim.outputs.job_id }}
+          BRANCH: ${{ steps.claim.outputs.branch }}
+          SHA: ${{ steps.push.outputs.sha }}
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          CI_URL: ${{ steps.pr.outputs.ci_url }}
+        run: |
+          set -euo pipefail
+          OIDC=$(curl -fsS \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
+          BODY=$(jq -n \
+            --arg id "$JOB_ID" --arg status "ci_passed" --arg branchName "$BRANCH" \
+            --arg commitSha "$SHA" --arg prUrl "$PR_URL" --arg ciUrl "$CI_URL" \
+            --argjson prNumber "$PR_NUMBER" \
+            '{id:$id,status:$status,branchName:$branchName,commitSha:$commitSha,prUrl:$prUrl,ciUrl:$ciUrl,prNumber:$prNumber}')
+          curl -fsS -X POST "${BUILDER_BASE_URL}/api/builder/worker/complete" \
+            -H "Authorization: Bearer ${OIDC}" -H "content-type: application/json" --data "$BODY" >/dev/null
+
+      - name: Wait for Vercel Preview
+        if: steps.claim.outputs.has_job == 'true'
+        id: preview
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.push.outputs.sha }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          PREVIEW_PATH: /generated/${{ steps.claim.outputs.publish_slug }}/index.html
+        run: |
+          set -euo pipefail
+          BASE_URL=""
+          for attempt in $(seq 1 60); do
+            DEPLOYMENTS=$(gh api "repos/${GITHUB_REPOSITORY}/deployments?sha=${SHA}&per_page=30" 2>/dev/null || echo '[]')
+            DEPLOYMENT_ID=$(printf '%s' "$DEPLOYMENTS" | jq -r '[.[] | select(((.environment // "") | test("preview"; "i")) or ((.creator.login // "") | test("vercel"; "i")))][0].id // empty')
+            if [ -n "$DEPLOYMENT_ID" ]; then
+              STATUSES=$(gh api "repos/${GITHUB_REPOSITORY}/deployments/${DEPLOYMENT_ID}/statuses?per_page=30" 2>/dev/null || echo '[]')
+              BASE_URL=$(printf '%s' "$STATUSES" | jq -r '[.[] | select(.state == "success")][0].environment_url // empty')
+            fi
+            if [ -z "$BASE_URL" ]; then
+              COMMENTS=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=50" 2>/dev/null || echo '[]')
+              BASE_URL=$(printf '%s' "$COMMENTS" | grep -Eo 'https://[A-Za-z0-9.-]+\.vercel\.app' | head -n 1 || true)
+            fi
+            if [ -n "$BASE_URL" ]; then break; fi
+            sleep 5
+          done
+          if [ -z "$BASE_URL" ]; then
+            echo "Vercel Preview não foi encontrado dentro da janela do worker."
+            exit 1
+          fi
+          BASE_URL=$(printf '%s' "$BASE_URL" | sed -E 's#(https://[^/]+).*#\1#')
+          PREVIEW_URL="${BASE_URL}${PREVIEW_PATH}"
+          echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
+          echo "Preview: $PREVIEW_URL"
+
+      - name: Complete Preview job
+        if: steps.claim.outputs.has_job == 'true'
+        shell: bash
+        env:
+          JOB_ID: ${{ steps.claim.outputs.job_id }}
+          BRANCH: ${{ steps.claim.outputs.branch }}
+          SHA: ${{ steps.push.outputs.sha }}
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          CI_URL: ${{ steps.pr.outputs.ci_url }}
+          PREVIEW_URL: ${{ steps.preview.outputs.preview_url }}
+        run: |
+          set -euo pipefail
+          OIDC=$(curl -fsS \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
+          BODY=$(jq -n \
+            --arg id "$JOB_ID" --arg status "preview_ready" --arg branchName "$BRANCH" \
+            --arg commitSha "$SHA" --arg prUrl "$PR_URL" --arg ciUrl "$CI_URL" --arg previewUrl "$PREVIEW_URL" \
+            --argjson prNumber "$PR_NUMBER" \
+            '{id:$id,status:$status,branchName:$branchName,commitSha:$commitSha,prUrl:$prUrl,ciUrl:$ciUrl,previewUrl:$previewUrl,prNumber:$prNumber}')
+          curl -fsS -X POST "${BUILDER_BASE_URL}/api/builder/worker/complete" \
+            -H "Authorization: Bearer ${OIDC}" -H "content-type: application/json" --data "$BODY" >/dev/null
+          echo "NEXUS_BUILDER_AGENT_PHASE2_OK"
+          echo "pr=$PR_URL"
+          echo "preview=$PREVIEW_URL"
+
+      - name: Report worker failure
+        if: failure() && steps.claim.outputs.has_job == 'true'
+        shell: bash
+        env:
+          JOB_ID: ${{ steps.claim.outputs.job_id }}
+          BRANCH: ${{ steps.claim.outputs.branch }}
+          SHA: ${{ steps.push.outputs.sha }}
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          CI_URL: ${{ steps.pr.outputs.ci_url }}
+        run: |
+          set +e
+          OIDC=$(curl -fsS \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
+          PR_NUM=${PR_NUMBER:-0}
+          BODY=$(jq -n \
+            --arg id "$JOB_ID" --arg status "failed" --arg branchName "${BRANCH:-}" \
+            --arg commitSha "${SHA:-}" --arg prUrl "${PR_URL:-}" --arg ciUrl "${CI_URL:-}" \
+            --arg errorCode "worker_pipeline_failed" \
+            --arg errorMessage "O worker falhou antes de concluir o Preview. Consulte o log do GitHub Actions." \
+            --argjson prNumber "$PR_NUM" \
+            '{id:$id,status:$status,branchName:$branchName,commitSha:$commitSha,prUrl:$prUrl,ciUrl:$ciUrl,errorCode:$errorCode,errorMessage:$errorMessage,prNumber:$prNumber}')
+          curl -sS -X POST "${BUILDER_BASE_URL}/api/builder/worker/complete" \
+            -H "Authorization: Bearer ${OIDC}" -H "content-type: application/json" --data "$BODY" >/dev/null
