@@ -60,6 +60,16 @@ test("Worker usa OIDC, gates completos e não possui merge/produção", () => {
   assert.doesNotMatch(workflow, /vercel\s+--prod/);
 });
 
+test("Worker continua até Preview quando política do GitHub bloqueia criação de PR", () => {
+  const workflow = fs.readFileSync(".github/workflows/nexus-builder-agent-worker.yml", "utf8");
+  assert.match(workflow, /PR_BLOCKED=false/);
+  assert.match(workflow, /PR_BLOCKED=true/);
+  assert.match(workflow, /O Preview continuará pela branch/);
+  assert.match(workflow, /blocked_by_repo_policy/);
+  assert.match(workflow, /\[ -z "\$BASE_URL" \] && \[ "\$PR_NUM" -gt 0 \]/);
+  assert.match(workflow, /status "preview_ready"/);
+});
+
 test("Fila Phase 2 tem RLS e claim atômico com SKIP LOCKED", () => {
   const migration = fs.readFileSync("supabase/migrations/202609070001_builder_agent_phase2.sql", "utf8");
   assert.match(migration, /enable row level security/i);
