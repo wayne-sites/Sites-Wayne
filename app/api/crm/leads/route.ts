@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseCrmLeadInput, parseCrmLeadPatchInput } from "@/lib/crm";
 import { getCurrentUser } from "@/lib/supabase/auth";
-import { insertCrmLead, isCrmAdmin, listCrmLeads, updateCrmLead } from "@/lib/server/crm-store";
+import { completeCrmFollowup, insertCrmLead, isCrmAdmin, listCrmLeads, updateCrmLead } from "@/lib/server/crm-store";
 import { apiError, bodyWithinLimit, clientIp, isSameOrigin, requestId } from "@/lib/server/http";
 import { log } from "@/lib/server/logger";
 import { rateLimit } from "@/lib/server/rate-limit";
@@ -55,11 +55,13 @@ export async function PATCH(request: NextRequest) {
   if (!parsed.ok) return apiError(parsed.error, 400, id, "invalid_lead_update");
 
   try {
-    const lead = await updateCrmLead(parsed.data.id, parsed.data.patch);
+    const lead = parsed.data.complete_followup
+      ? await completeCrmFollowup(parsed.data.id)
+      : await updateCrmLead(parsed.data.id, parsed.data.patch);
     if (!lead) return apiError("Lead não encontrado.", 404, id, "lead_not_found");
     return NextResponse.json({ lead, requestId: id }, { headers: { "cache-control": "no-store", "x-request-id": id } });
   } catch (error) {
-    log("error", "crm-leads", "lead_update_failed", { requestId: id, userId: auth.user.id, leadId: parsed.data.id, error });
+    log("error", "crm-leads", parsed.data.complete_followup ? "followup_complete_failed" : "lead_update_failed", { requestId: id, userId: auth.user.id, leadId: parsed.data.id, error });
     return apiError("Não foi possível atualizar o lead.", 502, id, "crm_unavailable");
   }
 }
