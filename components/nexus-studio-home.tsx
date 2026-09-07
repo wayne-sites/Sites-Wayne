@@ -1,12 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
-import type { NexusProject } from "@/lib/server/nexus-core-store";
 import styles from "./nexus-studio-home.module.css";
 
 type ProjectType =
   | "website" | "app" | "software" | "ai" | "agent" | "automation" | "image" | "video"
   | "audio" | "presentation" | "document" | "spreadsheet" | "game" | "database" | "api" | "business";
+
+type NexusProject = {
+  id: string;
+  name: string;
+  description: string | null;
+  project_type: ProjectType | "other";
+  status: "draft" | "active" | "archived";
+  artifacts?: Array<{ id: string; kind: string; name: string; path: string; version: number }>;
+};
 
 type CreateResponse = { project?: NexusProject; error?: string };
 
@@ -23,7 +32,7 @@ const creationCards: Array<{ type: ProjectType; label: string; icon: string; des
   { type: "presentation", label: "Presentation", icon: "▥", description: "Slides, narrativa e materiais executivos." },
   { type: "document", label: "Document", icon: "▤", description: "PDF, DOCX, relatórios e documentação." },
   { type: "spreadsheet", label: "Spreadsheet", icon: "▦", description: "Planilhas, modelos, fórmulas e dashboards." },
-  { type: "game", label: "Game", icon: "♢", description: "Jogos web, mobile e protótipos." , href: "/jogos"},
+  { type: "game", label: "Game", icon: "♢", description: "Jogos web, mobile e protótipos.", href: "/jogos" },
   { type: "database", label: "Database", icon: "◉", description: "Schemas, relações, RLS e migrations." },
   { type: "api", label: "API", icon: "⇄", description: "REST, webhooks, RPC e integrações." },
   { type: "business", label: "Business", icon: "↗", description: "Produto, vendas, monetização e operação.", href: "/solucoes-corporativas" },
@@ -125,7 +134,7 @@ export function NexusStudioHome({ initialProjects, coreReady }: { initialProject
         {created && (
           <div className={styles.created}>
             <div><span>PROJECT</span><strong>{created.name}</strong><small>{created.project_type} • {created.status} • {created.id.slice(0, 8).toUpperCase()}</small></div>
-            {selectedCard?.href && <a href={`${selectedCard.href}?project=${encodeURIComponent(created.id)}`}>ABRIR MOTOR <span>→</span></a>}
+            {selectedCard?.href && <Link href={`${selectedCard.href}?project=${encodeURIComponent(created.id)}`}>ABRIR MOTOR <span>→</span></Link>}
           </div>
         )}
       </section>
