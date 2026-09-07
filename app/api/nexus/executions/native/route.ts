@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { planNexusExecutionV2 } from "@/lib/nexus-capability-router";
 import { executeNexusNativeCapability } from "@/lib/nexus-native-tools";
-import { NEXUS_DEFAULT_RUNTIME, planNexusExecution } from "@/lib/nexus-tool-network";
+import { NEXUS_DEFAULT_RUNTIME } from "@/lib/nexus-tool-network";
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { apiError, bodyWithinLimit, isSameOrigin, requestId } from "@/lib/server/http";
 import { log } from "@/lib/server/logger";
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
   const capability = cleanCapability(body.capability);
   if (!capability) return apiError("Capability inválida.", 400, id, "invalid_capability");
 
-  const plan = planNexusExecution(capability, NEXUS_DEFAULT_RUNTIME, { zeroCostMode: true, allowPaid: false });
+  const plan = planNexusExecutionV2(capability, NEXUS_DEFAULT_RUNTIME, { zeroCostMode: true, allowPaid: false });
   if (plan.status !== "ready" || plan.execution !== "native" || !plan.toolId) {
     return NextResponse.json(
       { error: "Esta capability não pode ser executada no runtime nativo atual.", code: plan.blockedReason || "native_execution_blocked", plan, requestId: id },
