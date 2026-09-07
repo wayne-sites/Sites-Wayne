@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import type { CrmLead } from "@/lib/server/crm-store";
+import type { CrmProposal } from "@/lib/server/crm-proposals";
 import { crmPriorities, crmStages, getCrmFollowupState, type CrmFollowupState, type CrmPriority, type CrmStage } from "@/lib/crm";
+import { CrmProposalPanel } from "./crm-proposals";
 import styles from "./crm-pipeline.module.css";
 
 const stageLabels: Record<CrmStage, string> = {
@@ -47,7 +49,7 @@ function contactHref(lead: CrmLead) {
   return null;
 }
 
-export function CrmPipeline({ initialLeads }: { initialLeads: CrmLead[] }) {
+export function CrmPipeline({ initialLeads, initialProposals }: { initialLeads: CrmLead[]; initialProposals: CrmProposal[] }) {
   const [leads, setLeads] = useState(initialLeads);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -87,6 +89,12 @@ export function CrmPipeline({ initialLeads }: { initialLeads: CrmLead[] }) {
     }
   }
 
+  function markLeadProposed(leadId: string, totalCents: number) {
+    setLeads((current) => current.map((lead) => lead.id === leadId
+      ? { ...lead, stage: lead.stage === "qualificado" ? "proposta" : lead.stage, estimated_value_cents: lead.estimated_value_cents ?? totalCents }
+      : lead));
+  }
+
   return (
     <div className={styles.wrapper}>
       <section className={styles.metrics} aria-label="Indicadores do CRM">
@@ -115,6 +123,8 @@ export function CrmPipeline({ initialLeads }: { initialLeads: CrmLead[] }) {
           );
         })}
       </section>
+
+      <CrmProposalPanel leads={leads} initialProposals={initialProposals} onLeadProposed={markLeadProposed} />
     </div>
   );
 }
