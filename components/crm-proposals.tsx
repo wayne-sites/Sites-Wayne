@@ -22,14 +22,11 @@ function brl(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 }
 
-function defaultValidity() {
-  const date = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  return date.toISOString().slice(0, 10);
-}
-
 function newItem(): DraftItem {
   return { key: crypto.randomUUID(), title: "", description: "", quantity: "1", price: "" };
 }
+
+const initialItem: DraftItem = { key: "initial", title: "", description: "", quantity: "1", price: "" };
 
 export function CrmProposalPanel({ leads, initialProposals, onLeadProposed }: {
   leads: CrmLead[];
@@ -39,9 +36,9 @@ export function CrmProposalPanel({ leads, initialProposals, onLeadProposed }: {
   const [proposals, setProposals] = useState(initialProposals);
   const eligible = leads.filter((lead) => ["qualificado", "proposta", "negociacao"].includes(lead.stage));
   const [leadId, setLeadId] = useState(eligible[0]?.id || "");
-  const [validUntil, setValidUntil] = useState(defaultValidity());
+  const [validUntil, setValidUntil] = useState("");
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<DraftItem[]>([newItem()]);
+  const [items, setItems] = useState<DraftItem[]>([initialItem]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [createdUrl, setCreatedUrl] = useState("");
@@ -62,6 +59,7 @@ export function CrmProposalPanel({ leads, initialProposals, onLeadProposed }: {
     setCreatedUrl("");
     try {
       if (!leadId) throw new Error("Selecione um lead qualificado.");
+      if (!validUntil) throw new Error("Informe a validade da proposta.");
       const parsedItems = items.map((item) => ({
         title: item.title,
         description: item.description,
@@ -85,7 +83,7 @@ export function CrmProposalPanel({ leads, initialProposals, onLeadProposed }: {
       onLeadProposed(body.proposal.lead_id, body.proposal.total_cents);
       setItems([newItem()]);
       setNotes("");
-      setValidUntil(defaultValidity());
+      setValidUntil("");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível criar a proposta.");
     } finally {
@@ -103,7 +101,7 @@ export function CrmProposalPanel({ leads, initialProposals, onLeadProposed }: {
       <div className={styles.grid}>
         <div className={styles.builder}>
           <label>Lead qualificado<select value={leadId} onChange={(event) => setLeadId(event.target.value)}><option value="">Selecione</option>{eligible.map((lead) => <option value={lead.id} key={lead.id}>{lead.business} — {lead.name}</option>)}</select></label>
-          <label>Validade<input type="date" min={new Date().toISOString().slice(0, 10)} value={validUntil} onChange={(event) => setValidUntil(event.target.value)} /></label>
+          <label>Validade<input type="date" value={validUntil} onChange={(event) => setValidUntil(event.target.value)} /></label>
 
           <div className={styles.items}>
             {items.map((item, index) => (
@@ -121,7 +119,7 @@ export function CrmProposalPanel({ leads, initialProposals, onLeadProposed }: {
           <div className={styles.total}><span>TOTAL</span><strong>{brl(totalCents)}</strong></div>
           {error && <div className={styles.error} role="alert">{error}</div>}
           {createdUrl && <div className={styles.success}>Proposta criada. <a href={createdUrl} target="_blank" rel="noreferrer">ABRIR LINK DE REVISÃO</a></div>}
-          <button className={styles.create} type="button" disabled={saving || !leadId || totalCents <= 0} onClick={createProposal}>{saving ? "CRIANDO..." : "CRIAR PROPOSTA"}</button>
+          <button className={styles.create} type="button" disabled={saving || !leadId || !validUntil || totalCents <= 0} onClick={createProposal}>{saving ? "CRIANDO..." : "CRIAR PROPOSTA"}</button>
         </div>
 
         <div className={styles.history}>
