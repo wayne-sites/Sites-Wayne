@@ -15,6 +15,19 @@ export type CrmLead = ParsedCrmLead & {
   updated_at: string;
 };
 
+export type CrmFollowupTask = {
+  id: string;
+  lead_id: string;
+  status: "pending" | "done" | "cancelled";
+  kind: "contact";
+  due_at: string;
+  title: string;
+  notes: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 function config() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -59,6 +72,19 @@ export async function isCrmAdmin(userId: string) {
 
 export async function listCrmLeads(limit = 100) {
   return request<CrmLead[]>(`crm_leads?select=*&order=created_at.desc&limit=${Math.max(1, Math.min(limit, 200))}`);
+}
+
+export async function listDueCrmFollowups(referenceAt = new Date(), limit = 100) {
+  const due = encodeURIComponent(referenceAt.toISOString());
+  return request<CrmFollowupTask[]>(`crm_followup_tasks?status=eq.pending&due_at=lte.${due}&select=*&order=due_at.asc&limit=${Math.max(1, Math.min(limit, 200))}`);
+}
+
+export async function completeCrmFollowup(leadId: string, contactedAt = new Date()) {
+  const rows = await request<CrmLead[]>("rpc/complete_crm_followup_task", {
+    method: "POST",
+    body: JSON.stringify({ p_lead_id: leadId, p_contacted_at: contactedAt.toISOString() }),
+  });
+  return rows[0] || null;
 }
 
 export async function updateCrmLead(
