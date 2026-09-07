@@ -1,13 +1,16 @@
 import "server-only";
 import { fetchSafeGet, fetchWithTimeout } from "@/lib/server/http";
-import type { ParsedCrmLead } from "@/lib/crm";
+import type { CrmPriority, CrmStage, ParsedCrmLead } from "@/lib/crm";
 
 export type CrmLead = ParsedCrmLead & {
   id: string;
-  stage: "novo" | "qualificado" | "proposta" | "negociacao" | "ganho" | "perdido";
-  priority: "baixa" | "normal" | "alta";
+  stage: CrmStage;
+  priority: CrmPriority;
   estimated_value_cents: number | null;
+  last_contacted_at: string | null;
   next_followup_at: string | null;
+  notes: string | null;
+  consent_at: string;
   created_at: string;
   updated_at: string;
 };
@@ -49,11 +52,19 @@ export async function insertCrmLead(lead: ParsedCrmLead) {
   return rows[0];
 }
 
+export async function isCrmAdmin(userId: string) {
+  const rows = await request<Array<{ role: "owner" | "admin" }>>(`crm_admins?user_id=eq.${encodeURIComponent(userId)}&select=role&limit=1`);
+  return rows[0] || null;
+}
+
 export async function listCrmLeads(limit = 100) {
   return request<CrmLead[]>(`crm_leads?select=*&order=created_at.desc&limit=${Math.max(1, Math.min(limit, 200))}`);
 }
 
-export async function updateCrmLead(id: string, patch: Partial<Pick<CrmLead, "stage" | "priority" | "estimated_value_cents" | "next_followup_at">>) {
+export async function updateCrmLead(
+  id: string,
+  patch: Partial<Pick<CrmLead, "stage" | "priority" | "estimated_value_cents" | "next_followup_at" | "last_contacted_at" | "notes">>,
+) {
   const rows = await request<CrmLead[]>(`crm_leads?id=eq.${encodeURIComponent(id)}`, {
     method: "PATCH",
     headers: { Prefer: "return=representation" },
