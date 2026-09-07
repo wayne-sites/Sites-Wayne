@@ -1,4 +1,5 @@
 import "server-only";
+import { getSupabasePublishableKey, getSupabaseSecretKey, getSupabaseUrl } from "@/lib/server/supabase-env";
 
 export type FeatureName = "watch" | "auth" | "marketplace" | "starkia";
 
@@ -23,12 +24,33 @@ function watchStatus(): FeatureStatus {
   return { enabled: base.enabled, ready: base.enabled && licensed && validLogo && base.missing.length === 0, missing };
 }
 
+function authStatus(): FeatureStatus {
+  const missing: string[] = [];
+  if (!getSupabaseUrl()) missing.push("SUPABASE_URL");
+  if (!getSupabasePublishableKey()) missing.push("SUPABASE_PUBLISHABLE_KEY");
+  const isEnabled = enabled("AUTH_ENABLED");
+  return { enabled: isEnabled, ready: isEnabled && missing.length === 0, missing };
+}
+
+function marketplaceStatus(): FeatureStatus {
+  const missing: string[] = [];
+  if (!getSupabaseUrl()) missing.push("SUPABASE_URL");
+  if (!getSupabasePublishableKey()) missing.push("SUPABASE_PUBLISHABLE_KEY");
+  if (!getSupabaseSecretKey()) missing.push("SUPABASE_SECRET_KEY");
+  for (const name of ["MERCADO_PAGO_ACCESS_TOKEN", "MERCADO_PAGO_WEBHOOK_SECRET"]) if (!present(name)) missing.push(name);
+  const isEnabled = enabled("MARKETPLACE_ENABLED");
+  return { enabled: isEnabled, ready: isEnabled && missing.length === 0, missing };
+}
+
 function starkiaStatus(): FeatureStatus {
-  const base = status("STARKIA_ENABLED", ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "STARKIA_RELAY_SECRET"]);
+  const missing: string[] = [];
+  if (!getSupabaseUrl()) missing.push("SUPABASE_URL");
+  if (!getSupabaseSecretKey()) missing.push("SUPABASE_SECRET_KEY");
+  if (!present("STARKIA_RELAY_SECRET")) missing.push("STARKIA_RELAY_SECRET");
   const strongSecret = (process.env.STARKIA_RELAY_SECRET?.length || 0) >= 32;
-  const missing = [...base.missing];
   if (present("STARKIA_RELAY_SECRET") && !strongSecret) missing.push("STARKIA_RELAY_SECRET>=32");
-  return { enabled: base.enabled, ready: base.enabled && strongSecret && base.missing.length === 0, missing };
+  const isEnabled = enabled("STARKIA_ENABLED");
+  return { enabled: isEnabled, ready: isEnabled && strongSecret && missing.length === 0, missing };
 }
 
 function present(name: string) {
@@ -46,15 +68,9 @@ export function getFeatureStatus(name: FeatureName): FeatureStatus {
     case "watch":
       return watchStatus();
     case "auth":
-      return status("AUTH_ENABLED", ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]);
+      return authStatus();
     case "marketplace":
-      return status("MARKETPLACE_ENABLED", [
-        "NEXT_PUBLIC_SUPABASE_URL",
-        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-        "SUPABASE_SERVICE_ROLE_KEY",
-        "MERCADO_PAGO_ACCESS_TOKEN",
-        "MERCADO_PAGO_WEBHOOK_SECRET",
-      ]);
+      return marketplaceStatus();
     case "starkia":
       return starkiaStatus();
   }
