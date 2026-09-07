@@ -22,6 +22,11 @@ function date(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeStyle: "short" }).format(new Date(value));
 }
 
+function supabaseProjectRef() {
+  try { return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || "").hostname.split(".")[0] || "unknown"; }
+  catch { return "invalid"; }
+}
+
 const labels: Record<string, string> = {
   ready: "Aguardando aprovação",
   approved: "Aprovada",
@@ -39,10 +44,13 @@ export default async function ProposalPage({ params }: { params: Promise<{ publi
   let proposal;
   try { proposal = await getCrmProposalByPublicId(publicId); }
   catch (error) {
-    log("error", "crm-proposal-page", "proposal_lookup_failed", { publicId, error });
+    log("error", "crm-proposal-page", "proposal_lookup_failed", { publicId, supabaseProjectRef: supabaseProjectRef(), error });
     notFound();
   }
-  if (!proposal || !proposal.lead) notFound();
+  if (!proposal || !proposal.lead) {
+    log("warn", "crm-proposal-page", "proposal_not_found", { publicId, supabaseProjectRef: supabaseProjectRef() });
+    notFound();
+  }
   const items = [...(proposal.items || [])].sort((a, b) => a.position - b.position);
   const expired = proposal.status === "expired";
 
