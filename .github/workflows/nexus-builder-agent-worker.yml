@@ -10,9 +10,9 @@ on:
       - ".github/workflows/nexus-builder-agent-worker.yml"
       - "app/api/builder/publish/**"
       - "app/api/builder/jobs/**"
-      - "app/api/builder/worker/**"
       - "lib/builder/**"
       - "supabase/migrations/202609070001_builder_agent_phase2.sql"
+      - "supabase/migrations/202609070002_builder_agent_public_queue_rpc.sql"
 
 permissions:
   contents: write
@@ -27,7 +27,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  BUILDER_BASE_URL: https://sites-wayne.vercel.app
+  BUILDER_WORKER_URL: https://eeqrqfmamfvffihbpijn.supabase.co/functions/v1/nexus-builder-worker
 
 jobs:
   worker:
@@ -51,10 +51,10 @@ jobs:
           OIDC=$(curl -fsS \
             -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
-          CLAIM=$(curl -fsS -X POST "${BUILDER_BASE_URL}/api/builder/worker/claim" \
+          CLAIM=$(curl -fsS -X POST "${BUILDER_WORKER_URL}" \
             -H "Authorization: Bearer ${OIDC}" \
             -H "content-type: application/json" \
-            --data '{}')
+            --data '{"action":"claim"}')
           printf '%s' "$CLAIM" > "${RUNNER_TEMP}/builder-claim.json"
           JOB_ID=$(jq -r '.job.id // empty' "${RUNNER_TEMP}/builder-claim.json")
           if [ -z "$JOB_ID" ]; then
@@ -208,16 +208,9 @@ jobs:
           CI_URL: ${{ steps.pr.outputs.ci_url }}
         run: |
           set -euo pipefail
-          OIDC=$(curl -fsS \
-            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
-          BODY=$(jq -n \
-            --arg id "$JOB_ID" --arg status "ci_passed" --arg branchName "$BRANCH" \
-            --arg commitSha "$SHA" --arg prUrl "$PR_URL" --arg ciUrl "$CI_URL" \
-            --argjson prNumber "$PR_NUMBER" \
-            '{id:$id,status:$status,branchName:$branchName,commitSha:$commitSha,prUrl:$prUrl,ciUrl:$ciUrl,prNumber:$prNumber}')
-          curl -fsS -X POST "${BUILDER_BASE_URL}/api/builder/worker/complete" \
-            -H "Authorization: Bearer ${OIDC}" -H "content-type: application/json" --data "$BODY" >/dev/null
+          OIDC=$(curl -fsS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
+          BODY=$(jq -n --arg action "complete" --arg id "$JOB_ID" --arg status "ci_passed" --arg branchName "$BRANCH" --arg commitSha "$SHA" --arg prUrl "$PR_URL" --arg ciUrl "$CI_URL" --argjson prNumber "$PR_NUMBER" '{action:$action,id:$id,status:$status,branchName:$branchName,commitSha:$commitSha,prUrl:$prUrl,ciUrl:$ciUrl,prNumber:$prNumber}')
+          curl -fsS -X POST "${BUILDER_WORKER_URL}" -H "Authorization: Bearer ${OIDC}" -H "content-type: application/json" --data "$BODY" >/dev/null
 
       - name: Wait for Vercel Preview
         if: steps.claim.outputs.has_job == 'true'
@@ -267,16 +260,9 @@ jobs:
           PREVIEW_URL: ${{ steps.preview.outputs.preview_url }}
         run: |
           set -euo pipefail
-          OIDC=$(curl -fsS \
-            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
-          BODY=$(jq -n \
-            --arg id "$JOB_ID" --arg status "preview_ready" --arg branchName "$BRANCH" \
-            --arg commitSha "$SHA" --arg prUrl "$PR_URL" --arg ciUrl "$CI_URL" --arg previewUrl "$PREVIEW_URL" \
-            --argjson prNumber "$PR_NUMBER" \
-            '{id:$id,status:$status,branchName:$branchName,commitSha:$commitSha,prUrl:$prUrl,ciUrl:$ciUrl,previewUrl:$previewUrl,prNumber:$prNumber}')
-          curl -fsS -X POST "${BUILDER_BASE_URL}/api/builder/worker/complete" \
-            -H "Authorization: Bearer ${OIDC}" -H "content-type: application/json" --data "$BODY" >/dev/null
+          OIDC=$(curl -fsS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
+          BODY=$(jq -n --arg action "complete" --arg id "$JOB_ID" --arg status "preview_ready" --arg branchName "$BRANCH" --arg commitSha "$SHA" --arg prUrl "$PR_URL" --arg ciUrl "$CI_URL" --arg previewUrl "$PREVIEW_URL" --argjson prNumber "$PR_NUMBER" '{action:$action,id:$id,status:$status,branchName:$branchName,commitSha:$commitSha,prUrl:$prUrl,ciUrl:$ciUrl,previewUrl:$previewUrl,prNumber:$prNumber}')
+          curl -fsS -X POST "${BUILDER_WORKER_URL}" -H "Authorization: Bearer ${OIDC}" -H "content-type: application/json" --data "$BODY" >/dev/null
           echo "NEXUS_BUILDER_AGENT_PHASE2_OK"
           echo "pr=$PR_URL"
           echo "preview=$PREVIEW_URL"
@@ -293,16 +279,7 @@ jobs:
           CI_URL: ${{ steps.pr.outputs.ci_url }}
         run: |
           set +e
-          OIDC=$(curl -fsS \
-            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
+          OIDC=$(curl -fsS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
           PR_NUM=${PR_NUMBER:-0}
-          BODY=$(jq -n \
-            --arg id "$JOB_ID" --arg status "failed" --arg branchName "${BRANCH:-}" \
-            --arg commitSha "${SHA:-}" --arg prUrl "${PR_URL:-}" --arg ciUrl "${CI_URL:-}" \
-            --arg errorCode "worker_pipeline_failed" \
-            --arg errorMessage "O worker falhou antes de concluir o Preview. Consulte o log do GitHub Actions." \
-            --argjson prNumber "$PR_NUM" \
-            '{id:$id,status:$status,branchName:$branchName,commitSha:$commitSha,prUrl:$prUrl,ciUrl:$ciUrl,errorCode:$errorCode,errorMessage:$errorMessage,prNumber:$prNumber}')
-          curl -sS -X POST "${BUILDER_BASE_URL}/api/builder/worker/complete" \
-            -H "Authorization: Bearer ${OIDC}" -H "content-type: application/json" --data "$BODY" >/dev/null
+          BODY=$(jq -n --arg action "complete" --arg id "$JOB_ID" --arg status "failed" --arg branchName "${BRANCH:-}" --arg commitSha "${SHA:-}" --arg prUrl "${PR_URL:-}" --arg ciUrl "${CI_URL:-}" --arg errorCode "worker_pipeline_failed" --arg errorMessage "O worker falhou antes de concluir o Preview. Consulte o log do GitHub Actions." --argjson prNumber "$PR_NUM" '{action:$action,id:$id,status:$status,branchName:$branchName,commitSha:$commitSha,prUrl:$prUrl,ciUrl:$ciUrl,errorCode:$errorCode,errorMessage:$errorMessage,prNumber:$prNumber}')
+          curl -sS -X POST "${BUILDER_WORKER_URL}" -H "Authorization: Bearer ${OIDC}" -H "content-type: application/json" --data "$BODY" >/dev/null

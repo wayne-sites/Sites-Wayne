@@ -1,23 +1,14 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
-import { fetchSafeGet, fetchWithTimeout } from "@/lib/server/http";
+import { fetchWithTimeout } from "@/lib/server/http";
 import type { BuilderProject } from "@/lib/builder/manifest";
 import type { BuilderAgentJobStatus } from "@/lib/builder/publication";
 
-export type BuilderAgentJob = {
+export type BuilderAgentJobStatusView = {
   id: string;
-  user_id: string | null;
   status: BuilderAgentJobStatus;
   project_name: string;
   publish_slug: string;
-  project: BuilderProject;
-  plan: Record<string, unknown> | null;
-  audit: Record<string, unknown> | null;
-  provider: string | null;
-  model: string | null;
-  generation_path: string | null;
-  status_token_hash: string;
-  worker_id: string | null;
   attempts: number;
   branch_name: string | null;
   commit_sha: string | null;
@@ -29,35 +20,29 @@ export type BuilderAgentJob = {
   error_message: string | null;
   created_at: string;
   updated_at: string;
-  claimed_at: string | null;
   completed_at: string | null;
 };
 
 function config() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) throw new Error("builder_job_store_not_configured");
   return { url, key };
 }
 
-async function request<T>(path: string, init: RequestInit = {}) {
+async function rpc<T>(name: string, body: Record<string, unknown>) {
   const { url, key } = config();
-  const target = `${url}/rest/v1/${path}`;
-  const requestInit: RequestInit = {
-    ...init,
+  const response = await fetchWithTimeout(`${url}/rest/v1/rpc/${name}`, {
+    method: "POST",
     cache: "no-store",
     headers: {
       apikey: key,
       authorization: `Bearer ${key}`,
       "content-type": "application/json",
-      ...(init.headers || {}),
     },
-  };
-  const response = !requestInit.method || requestInit.method === "GET"
-    ? await fetchSafeGet(target, requestInit)
-    : await fetchWithTimeout(target, requestInit, 10_000);
-  if (!response.ok) throw new Error(`builder_job_store_${response.status}_${await response.text()}`);
-  if (response.status === 204) return undefined as T;
+    body: JSON.stringify(body),
+  }, 10_000);
+  if (!response.ok) throw new Error(`builder_job_store_${response.status}_${(await response.text()).slice(0, 300)}`);
   return await response.json() as T;
 }
 
@@ -82,53 +67,30 @@ export async function insertBuilderAgentJob(row: {
   generation_path?: string | null;
   status_token_hash: string;
 }) {
-  const rows = await request<BuilderAgentJob[]>("builder_agent_jobs", {
-    method: "POST",
-    headers: { Prefer: "return=representation" },
-    body: JSON.stringify({ ...row, status: "queued" }),
-  });
-  return rows[0];
-}
-
-export async function getBuilderAgentJob(id: string) {
-  const rows = await request<BuilderAgentJob[]>(
-    `builder_agent_jobs?id=eq.${encodeURIComponent(id)}&select=*`,
-  );
-  return rows[0] || null;
-}
-
-export async function claimBuilderAgentJob(workerId: string) {
-  const rows = await request<BuilderAgentJob[]>("rpc/claim_builder_agent_job", {
-    method: "POST",
-    body: JSON.stringify({ p_worker_id: workerId }),
-  });
-  return rows[0] || null;
-}
-
-export async function updateBuilderAgentJob(
-  id: string,
-  patch: Partial<Pick<BuilderAgentJob,
-    | "status"
-    | "branch_name"
-    | "commit_sha"
-    | "pr_number"
-    | "pr_url"
-    | "preview_url"
-    | "ci_url"
-    | "error_code"
-    | "error_message"
-    | "completed_at"
-  >>,
-  workerId?: string,
-) {
-  const workerFilter = workerId ? `&worker_id=eq.${encodeURIComponent(workerId)}` : "";
-  const rows = await request<BuilderAgentJob[]>(
-    `builder_agent_jobs?id=eq.${encodeURIComponent(id)}${workerFilter}`,
+  const rows = await rpc<Array<{ id: string; status: BuilderAgentJobStatus; publish_slug: string }>>(
+    "enqueue_builder_agent_job",
     {
-      method: "PATCH",
-      headers: { Prefer: "return=representation" },
-      body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }),
+      p_user_id: row.user_id || null,
+      p_project_name: row.project_name,
+      p_publish_slug: row.publish_slug,
+      p_project: row.project,
+      p_plan: row.plan || null,
+      p_audit: row.audit || null,
+      p_provider: row.provider || null,
+      p_model: row.model || null,
+      p_generation_path: row.generation_path || null,
+      p_status_token_hash: row.status_token_hash,
     },
   );
+  const result = rows[0];
+  if (!result) throw new Error("builder_job_store_enqueue_empty");
+  return result;
+}
+
+export async function getBuilderAgentJobStatus(id: string, statusTokenHash: string) {
+  const rows = await rpc<BuilderAgentJobStatusView[]>("get_builder_agent_job_status", {
+    p_id: id,
+    p_status_token_hash: statusTokenHash,
+  });
   return rows[0] || null;
 }
