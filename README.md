@@ -18,11 +18,13 @@ Mega portal digital brasileiro construído com Next.js, TypeScript e Tailwind CS
 - API server-side preparada para um provedor de IA configurável;
 - PWA instalável, metadados, sitemap, robots e páginas legais;
 - schema PostgreSQL/Supabase com relacionamentos, índices e políticas RLS;
+- captura consentida de leads de Soluções Corporativas no CRM server-side;
+- pipeline privado em `/clientes` com estágio, prioridade, valor, follow-up e notas;
 - layout estabilizado, sem animações que causem tremor no celular.
 
 Cada integração fica desligada por feature flag até credenciais, migrations e homologação estarem completas. A ausência de uma credencial isola somente o módulo correspondente; não existe resposta de sucesso fictícia. Realtime, uploads e analytics ainda não foram ativados.
 
-O botão direto da área de serviços usa o contato comercial público do Sites Wayne. A variável `NEXT_PUBLIC_WHATSAPP_NUMBER`, somente com números e código do país, pode substituir esse contato em outro ambiente. O diagnóstico gera código do lead, referência de investimento, prazo, origem e mensagem pronta sem armazenar dados no servidor.
+O botão direto da área de serviços usa o contato comercial público do Sites Wayne. A variável `NEXT_PUBLIC_WHATSAPP_NUMBER`, somente com números e código do país, pode substituir esse contato em outro ambiente. O briefing de Sites Wayne permanece local até o usuário decidir copiar ou enviar. Já o diagnóstico de Soluções Corporativas pode registrar um lead no CRM somente após consentimento explícito; os registros são acessíveis apenas por rotas server-side e membros autorizados em `crm_admins`.
 
 ## Rodar no computador
 
@@ -60,21 +62,22 @@ O GitHub Actions executa esse conjunto em cada pull request e também verifica p
 
 ## Supabase
 
-A migration inicial está em `supabase/migrations/202608100001_initial_nexus_schema.sql`. O Autopilot usa `202608170001_wayne_autopilot.sql`; o hardening usa `202608170002_security_hardening.sql`; Watch, pedido transacional do marketplace e relay StarkIA usam `202608170003_integrations.sql`. Aplique-as na ordem. Cadastre administradores pelo painel seguro do Supabase; não existe senha administrativa fixa no código.
+A migration inicial está em `supabase/migrations/202608100001_initial_nexus_schema.sql`. O Autopilot usa `202608170001_wayne_autopilot.sql`; o hardening usa `202608170002_security_hardening.sql`; Watch, pedido transacional do marketplace e relay StarkIA usam `202608170003_integrations.sql`. O CRM adiciona `20260907153214_crm_leads_v1.sql` e `20260907155227_crm_admins_v1.sql`. Aplique as migrations na ordem. Cadastre administradores pelo painel seguro do Supabase; não existe senha administrativa fixa no código.
 
 ## Ativar os módulos Nexus
 
-1. Aplique as quatro migrations no Supabase e configure URL, anon key e service role na Vercel.
+1. Aplique as migrations necessárias no Supabase e configure URL, anon key e service role na Vercel.
 2. Teste cadastro, confirmação de e-mail, login, recuperação e RLS; depois defina `AUTH_ENABLED=true`.
 3. Para um portal de renda, obtenha a autorização/licença comercial aplicável do TMDB, registre `TMDB_COMMERCIAL_APPROVED=true`, configure um logo oficial aprovado e o token Read Access; só então defina `NEXUS_WATCH_ENABLED=true`.
 4. Cadastre produtos reais com status `published`, homologue o Checkout Pro e o webhook do Mercado Pago e só então defina `MARKETPLACE_ENABLED=true`.
 5. Instale o worker de relay compatível no computador StarkIA, gere `STARKIA_RELAY_SECRET` com alta entropia, pareie um dispositivo em `/automacoes` e só então defina `STARKIA_ENABLED=true`.
+6. Para liberar `/clientes`, crie a conta proprietária normalmente e cadastre o `user_id` real em `crm_admins` com papel `owner` ou `admin`; não existe promoção automática do primeiro usuário.
 
 Nunca coloque `TMDB_ACCESS_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`, `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_WEBHOOK_SECRET`, `STARKIA_RELAY_SECRET` ou token de dispositivo em variáveis `NEXT_PUBLIC_*`.
 
 ## Ativar o Wayne Autopilot
 
-1. Execute as quatro migrations no Supabase, na ordem dos nomes.
+1. Execute as migrations necessárias no Supabase, na ordem dos nomes.
 2. Configure na Vercel `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`.
 3. Crie uma aplicação no Mercado Pago e configure `MERCADO_PAGO_ACCESS_TOKEN`.
 4. Cadastre o webhook de pagamentos apontando para `/api/mercado-pago/webhook` e configure `MERCADO_PAGO_WEBHOOK_SECRET` com a assinatura secreta exibida pelo Mercado Pago.
