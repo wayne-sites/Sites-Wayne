@@ -17,7 +17,7 @@ export default async function ClientsPipelinePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/entrar");
 
-  let admin: Awaited<ReturnType<typeof isCrmAdmin>> = null;
+  let admin: { role: "owner" | "admin" } | null = null;
   try { admin = await isCrmAdmin(user.id); }
   catch {
     return (
