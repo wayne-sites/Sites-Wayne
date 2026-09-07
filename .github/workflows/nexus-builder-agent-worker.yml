@@ -154,7 +154,7 @@ jobs:
           SHA=$(git rev-parse HEAD)
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 
-      - name: Open Preview pull request
+      - name: Open Preview pull request when repository policy allows it
         if: steps.claim.outputs.has_job == 'true'
         id: pr
         shell: bash
@@ -168,7 +168,8 @@ jobs:
           set -euo pipefail
           EXISTING=$(gh pr list --head "$BRANCH" --state open --json number,url --limit 1)
           PR_URL=$(printf '%s' "$EXISTING" | jq -r '.[0].url // empty')
-          PR_NUMBER=$(printf '%s' "$EXISTING" | jq -r '.[0].number // empty')
+          PR_NUMBER=$(printf '%s' "$EXISTING" | jq -r '.[0].number // 0')
+          PR_BLOCKED=false
           if [ -z "$PR_URL" ]; then
             cat > "${RUNNER_TEMP}/builder-pr-body.md" <<EOF
           ## Nexus Builder Agent — Preview
@@ -181,10 +182,16 @@ jobs:
 
           **Este PR não autoriza merge nem publicação em produção.** O Agent para no Preview.
           EOF
-            PR_URL=$(gh pr create --base main --head "$BRANCH" \
+            if CREATED=$(gh pr create --base main --head "$BRANCH" \
               --title "feat(builder-agent): Preview ${PROJECT_NAME}" \
-              --body-file "${RUNNER_TEMP}/builder-pr-body.md")
-            PR_NUMBER=${PR_URL##*/}
+              --body-file "${RUNNER_TEMP}/builder-pr-body.md" 2>"${RUNNER_TEMP}/builder-pr-error.txt"); then
+              PR_URL="$CREATED"
+              PR_NUMBER=${PR_URL##*/}
+            else
+              PR_BLOCKED=true
+              echo "GitHub não permitiu que Actions criasse o PR. O Preview continuará pela branch."
+              cat "${RUNNER_TEMP}/builder-pr-error.txt" || true
+            fi
           fi
           CI_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${SHA}" \
@@ -194,6 +201,7 @@ jobs:
             -f target_url="$CI_URL" >/dev/null
           echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
           echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "pr_blocked=$PR_BLOCKED" >> "$GITHUB_OUTPUT"
           echo "ci_url=$CI_URL" >> "$GITHUB_OUTPUT"
 
       - name: Record CI gate
@@ -208,8 +216,9 @@ jobs:
           CI_URL: ${{ steps.pr.outputs.ci_url }}
         run: |
           set -euo pipefail
+          PR_NUM=${PR_NUMBER:-0}
           OIDC=$(curl -fsS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
-          BODY=$(jq -n --arg action "complete" --arg id "$JOB_ID" --arg status "ci_passed" --arg branchName "$BRANCH" --arg commitSha "$SHA" --arg prUrl "$PR_URL" --arg ciUrl "$CI_URL" --argjson prNumber "$PR_NUMBER" '{action:$action,id:$id,status:$status,branchName:$branchName,commitSha:$commitSha,prUrl:$prUrl,ciUrl:$ciUrl,prNumber:$prNumber}')
+          BODY=$(jq -n --arg action "complete" --arg id "$JOB_ID" --arg status "ci_passed" --arg branchName "$BRANCH" --arg commitSha "$SHA" --arg prUrl "${PR_URL:-}" --arg ciUrl "$CI_URL" --argjson prNumber "$PR_NUM" '{action:$action,id:$id,status:$status,branchName:$branchName,commitSha:$commitSha,prUrl:$prUrl,ciUrl:$ciUrl,prNumber:$prNumber}')
           curl -fsS -X POST "${BUILDER_WORKER_URL}" -H "Authorization: Bearer ${OIDC}" -H "content-type: application/json" --data "$BODY" >/dev/null
 
       - name: Wait for Vercel Preview
@@ -224,6 +233,7 @@ jobs:
         run: |
           set -euo pipefail
           BASE_URL=""
+          PR_NUM=${PR_NUMBER:-0}
           for attempt in $(seq 1 60); do
             DEPLOYMENTS=$(gh api "repos/${GITHUB_REPOSITORY}/deployments?sha=${SHA}&per_page=30" 2>/dev/null || echo '[]')
             DEPLOYMENT_ID=$(printf '%s' "$DEPLOYMENTS" | jq -r '[.[] | select(((.environment // "") | test("preview"; "i")) or ((.creator.login // "") | test("vercel"; "i")))][0].id // empty')
@@ -231,8 +241,8 @@ jobs:
               STATUSES=$(gh api "repos/${GITHUB_REPOSITORY}/deployments/${DEPLOYMENT_ID}/statuses?per_page=30" 2>/dev/null || echo '[]')
               BASE_URL=$(printf '%s' "$STATUSES" | jq -r '[.[] | select(.state == "success")][0].environment_url // empty')
             fi
-            if [ -z "$BASE_URL" ]; then
-              COMMENTS=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=50" 2>/dev/null || echo '[]')
+            if [ -z "$BASE_URL" ] && [ "$PR_NUM" -gt 0 ]; then
+              COMMENTS=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUM}/comments?per_page=50" 2>/dev/null || echo '[]')
               BASE_URL=$(printf '%s' "$COMMENTS" | grep -Eo 'https://[A-Za-z0-9.-]+\.vercel\.app' | head -n 1 || true)
             fi
             if [ -n "$BASE_URL" ]; then break; fi
@@ -256,15 +266,21 @@ jobs:
           SHA: ${{ steps.push.outputs.sha }}
           PR_URL: ${{ steps.pr.outputs.pr_url }}
           PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          PR_BLOCKED: ${{ steps.pr.outputs.pr_blocked }}
           CI_URL: ${{ steps.pr.outputs.ci_url }}
           PREVIEW_URL: ${{ steps.preview.outputs.preview_url }}
         run: |
           set -euo pipefail
+          PR_NUM=${PR_NUMBER:-0}
           OIDC=$(curl -fsS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
-          BODY=$(jq -n --arg action "complete" --arg id "$JOB_ID" --arg status "preview_ready" --arg branchName "$BRANCH" --arg commitSha "$SHA" --arg prUrl "$PR_URL" --arg ciUrl "$CI_URL" --arg previewUrl "$PREVIEW_URL" --argjson prNumber "$PR_NUMBER" '{action:$action,id:$id,status:$status,branchName:$branchName,commitSha:$commitSha,prUrl:$prUrl,ciUrl:$ciUrl,previewUrl:$previewUrl,prNumber:$prNumber}')
+          BODY=$(jq -n --arg action "complete" --arg id "$JOB_ID" --arg status "preview_ready" --arg branchName "$BRANCH" --arg commitSha "$SHA" --arg prUrl "${PR_URL:-}" --arg ciUrl "$CI_URL" --arg previewUrl "$PREVIEW_URL" --argjson prNumber "$PR_NUM" '{action:$action,id:$id,status:$status,branchName:$branchName,commitSha:$commitSha,prUrl:$prUrl,ciUrl:$ciUrl,previewUrl:$previewUrl,prNumber:$prNumber}')
           curl -fsS -X POST "${BUILDER_WORKER_URL}" -H "Authorization: Bearer ${OIDC}" -H "content-type: application/json" --data "$BODY" >/dev/null
           echo "NEXUS_BUILDER_AGENT_PHASE2_OK"
-          echo "pr=$PR_URL"
+          if [ "${PR_BLOCKED:-false}" = "true" ]; then
+            echo "pr=blocked_by_repo_policy"
+          else
+            echo "pr=${PR_URL:-none}"
+          fi
           echo "preview=$PREVIEW_URL"
 
       - name: Report worker failure
@@ -279,7 +295,7 @@ jobs:
           CI_URL: ${{ steps.pr.outputs.ci_url }}
         run: |
           set +e
-          OIDC=$(curl -fsS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
           PR_NUM=${PR_NUMBER:-0}
+          OIDC=$(curl -fsS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-builder-agent" | jq -r '.value')
           BODY=$(jq -n --arg action "complete" --arg id "$JOB_ID" --arg status "failed" --arg branchName "${BRANCH:-}" --arg commitSha "${SHA:-}" --arg prUrl "${PR_URL:-}" --arg ciUrl "${CI_URL:-}" --arg errorCode "worker_pipeline_failed" --arg errorMessage "O worker falhou antes de concluir o Preview. Consulte o log do GitHub Actions." --argjson prNumber "$PR_NUM" '{action:$action,id:$id,status:$status,branchName:$branchName,commitSha:$commitSha,prUrl:$prUrl,ciUrl:$ciUrl,errorCode:$errorCode,errorMessage:$errorMessage,prNumber:$prNumber}')
           curl -sS -X POST "${BUILDER_WORKER_URL}" -H "Authorization: Bearer ${OIDC}" -H "content-type: application/json" --data "$BODY" >/dev/null
