@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ModuleShell } from "@/components/module-shell";
 import { NexusStudioHome } from "@/components/nexus-studio-home";
 import { getCurrentUser } from "@/lib/supabase/auth";
-import { listNexusProjectsForUser } from "@/lib/server/nexus-core-store";
+import { listNexusProjectsForUser, type NexusProject } from "@/lib/server/nexus-core-store";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -16,7 +17,7 @@ export default async function NexusStudioPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/entrar");
 
-  let projects = [];
+  let projects: NexusProject[] = [];
   let coreReady = true;
   try {
     projects = await listNexusProjectsForUser(user.id, 100);
@@ -30,7 +31,7 @@ export default async function NexusStudioPage() {
       eyebrow="NEXUS CORE • CREATOR WORKSPACE"
       title="Uma infraestrutura. Milhares de tipos de criação."
       description="PROJECT, ARTIFACT, TOOL, EXECUTION, INTEGRATION e DEPLOYMENT formam a base persistente do Universal Creation Engine."
-      action={<a className="primary-button" href="/builder">ABRIR BUILDER <span>→</span></a>}
+      action={<Link className="primary-button" href="/builder">ABRIR BUILDER <span>→</span></Link>}
     >
       <NexusStudioHome initialProjects={projects} coreReady={coreReady} />
     </ModuleShell>
