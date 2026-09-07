@@ -38,7 +38,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ publi
   const proposal = await getCrmProposalByPublicId(publicId).catch(() => null);
   if (!proposal || !proposal.lead) notFound();
   const items = [...(proposal.items || [])].sort((a, b) => a.position - b.position);
-  const expired = proposal.status === "ready" && new Date(proposal.valid_until).getTime() < Date.now();
+  const expired = proposal.status === "expired";
 
   return (
     <main className={styles.page}>
@@ -53,7 +53,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ publi
           <h1>Proposta para {proposal.lead.business}</h1>
           <p>Revise escopo, valor e validade antes de aprovar. O pagamento ocorre no ambiente seguro do Mercado Pago.</p>
         </div>
-        <div className={styles.status}><small>STATUS</small><strong>{expired ? "Expirada" : labels[proposal.status] || proposal.status}</strong></div>
+        <div className={styles.status}><small>STATUS</small><strong>{labels[proposal.status] || proposal.status}</strong></div>
       </section>
 
       <section className={styles.meta}>
@@ -79,7 +79,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ publi
 
       <section className={styles.decision}>
         <h2>Aprovação</h2>
-        <ProposalDecision publicId={proposal.public_id} initialStatus={expired ? "expired" : proposal.status} checkoutUrl={proposal.checkout_url} expired={expired} />
+        <ProposalDecision publicId={proposal.public_id} initialStatus={proposal.status} checkoutUrl={proposal.checkout_url} expired={expired} />
       </section>
 
       <footer className={styles.footer}>O Nexus só marca esta proposta como paga depois que o servidor confirma o pagamento junto ao Mercado Pago.</footer>
