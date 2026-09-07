@@ -5,6 +5,7 @@ import { completeCrmFollowup, insertCrmLead, isCrmAdmin, listCrmLeads, updateCrm
 import { apiError, bodyWithinLimit, clientIp, isSameOrigin, requestId } from "@/lib/server/http";
 import { log } from "@/lib/server/logger";
 import { rateLimit } from "@/lib/server/rate-limit";
+import { isSupabaseServerConfigured } from "@/lib/server/supabase-env";
 
 async function authorizeAdmin(requestIdValue: string) {
   const user = await getCurrentUser();
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
 
   const parsed = parseCrmLeadInput(json);
   if (!parsed.ok) return apiError(parsed.error, 400, id, "invalid_lead");
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!isSupabaseServerConfigured()) {
     return apiError("CRM temporariamente indisponível.", 503, id, "crm_not_configured");
   }
 
