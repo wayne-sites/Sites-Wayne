@@ -11,6 +11,7 @@ export function GET() {
     publishableKey: Boolean(getSupabasePublishableKey()),
     secretKey: Boolean(getSupabaseSecretKey()),
   };
+  const supabaseSynced = supabase.url && supabase.publishableKey && supabase.secretKey;
   const payments = {
     accessToken: Boolean(process.env.MERCADO_PAGO_ACCESS_TOKEN?.trim()),
     webhookSecret: Boolean(process.env.MERCADO_PAGO_WEBHOOK_SECRET?.trim()),
@@ -33,7 +34,7 @@ export function GET() {
     timestamp: new Date().toISOString(),
     build,
     checks,
-    integrations: { supabase, payments },
+    integrations: { supabase: { ...supabase, synced: supabaseSynced }, payments },
     features,
   }, {
     headers: { "cache-control": "no-store", "x-content-type-options": "nosniff" },
