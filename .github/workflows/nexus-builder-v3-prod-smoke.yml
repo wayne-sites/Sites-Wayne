@@ -1,5 +1,6 @@
 name: Nexus Builder V3 production smoke
 
+# rerun after structured schema limit fix
 on:
   push:
     branches:
