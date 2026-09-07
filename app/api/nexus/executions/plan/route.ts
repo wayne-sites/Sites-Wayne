@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/supabase/auth";
-import { NEXUS_DEFAULT_RUNTIME, planNexusExecution } from "@/lib/nexus-tool-network";
+import { planNexusExecutionV2 } from "@/lib/nexus-capability-router";
+import { NEXUS_DEFAULT_RUNTIME } from "@/lib/nexus-tool-network";
 import { apiError, bodyWithinLimit, isSameOrigin, requestId } from "@/lib/server/http";
 import { rateLimit } from "@/lib/server/rate-limit";
 
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
   const allowPaid = input.allow_paid === true;
   if (zeroCostMode && allowPaid) return apiError("ZERO COST MODE bloqueia ferramentas pagas.", 409, id, "zero_cost_paid_conflict");
 
-  const plan = planNexusExecution(capability, NEXUS_DEFAULT_RUNTIME, { zeroCostMode, allowPaid });
+  const plan = planNexusExecutionV2(capability, NEXUS_DEFAULT_RUNTIME, { zeroCostMode, allowPaid });
   return NextResponse.json(
     { plan, requestId: id },
     { headers: { "cache-control": "no-store", "x-request-id": id } },
