@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { expireMarketplaceOrders, listPublishedWayneSites, updateWayneOrder } from "@/lib/supabase-admin";
+import { listDueCrmFollowups } from "@/lib/server/crm-store";
 import { fetchWithTimeout, requestId, secureCompare } from "@/lib/server/http";
 import { log } from "@/lib/server/logger";
 
@@ -12,6 +13,14 @@ export async function GET(request: NextRequest) {
     const expiredMarketplaceOrders = await expireMarketplaceOrders(100).catch(() => null);
     const sites = await listPublishedWayneSites(100);
     const checkedAt = new Date().toISOString();
+    const dueCrmFollowups = await listDueCrmFollowups(new Date(checkedAt), 100).catch(() => null);
+    if (dueCrmFollowups?.length) {
+      log("warn", "crm-followup", "followups_due", {
+        requestId: id,
+        count: dueCrmFollowups.length,
+        oldestDueAt: dueCrmFollowups[0]?.due_at || null,
+      });
+    }
     const results = await Promise.all(sites.map(async (site) => {
       let status = "offline";
       try {
@@ -21,7 +30,17 @@ export async function GET(request: NextRequest) {
       await updateWayneOrder(site.id, { last_health_status: status, last_health_check_at: checkedAt });
       return { slug: site.slug, status };
     }));
-    return NextResponse.json({ checkedAt, sites: results.length, results, expiredMarketplaceOrders, requestId: id }, { headers: { "cache-control": "no-store" } });
+    return NextResponse.json({
+      checkedAt,
+      sites: results.length,
+      results,
+      expiredMarketplaceOrders,
+      crmFollowups: dueCrmFollowups === null ? null : {
+        due: dueCrmFollowups.length,
+        oldestDueAt: dueCrmFollowups[0]?.due_at || null,
+      },
+      requestId: id,
+    }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     log("error", "wayne-maintenance", "health_sweep_failed", { requestId: id, error });
     return NextResponse.json({ error: "Falha na manutenção automática.", requestId: id }, { status: 500 });
