@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ProposalDecision } from "@/components/proposal-decision";
 import { isUuid } from "@/lib/validation";
 import { getCrmProposalByPublicId } from "@/lib/server/crm-proposals";
+import { log } from "@/lib/server/logger";
 import styles from "./proposal.module.css";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,12 @@ const labels: Record<string, string> = {
 export default async function ProposalPage({ params }: { params: Promise<{ publicId: string }> }) {
   const { publicId } = await params;
   if (!isUuid(publicId)) notFound();
-  const proposal = await getCrmProposalByPublicId(publicId).catch(() => null);
+  let proposal;
+  try { proposal = await getCrmProposalByPublicId(publicId); }
+  catch (error) {
+    log("error", "crm-proposal-page", "proposal_lookup_failed", { publicId, error });
+    notFound();
+  }
   if (!proposal || !proposal.lead) notFound();
   const items = [...(proposal.items || [])].sort((a, b) => a.position - b.position);
   const expired = proposal.status === "expired";
