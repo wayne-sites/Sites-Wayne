@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     const code = error instanceof Error ? error.message : "native_execution_failed";
-    log("warning", "nexus-native", "execution_failed", { requestId: id, userId: user.id, capability, code });
+    log("warn", "nexus-native", "execution_failed", { requestId: id, userId: user.id, capability, code });
     return apiError("Não foi possível executar esta capability nativa.", 400, id, code);
   }
 }
