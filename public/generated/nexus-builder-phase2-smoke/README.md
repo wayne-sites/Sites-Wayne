@@ -1,0 +1,1 @@
+# Nexus Builder Phase 2 Smoke\n\nSmoke test controlado para validar fila, GitHub Actions, PR e Vercel Preview.\n
