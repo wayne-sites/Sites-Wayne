@@ -20,6 +20,9 @@ type EnrollmentResponse = {
   error?: string;
 };
 
+const publicSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, "") || "";
+const workerGatewayUrl = publicSupabaseUrl ? `${publicSupabaseUrl}/functions/v1/nexus-worker-gateway` : "";
+
 export function NexusWorkerEnrollment() {
   const [name, setName] = useState("Meu Nexus Worker");
   const [platform, setPlatform] = useState<Platform>("windows");
@@ -33,10 +36,14 @@ export function NexusWorkerEnrollment() {
 
   const command = useMemo(() => {
     if (!token) return "";
+    const transport = workerGatewayUrl
+      ? { key: "NEXUS_WORKER_GATEWAY_URL", value: workerGatewayUrl }
+      : { key: "NEXUS_BASE_URL", value: baseUrl };
+
     if (platform === "windows") {
-      return `$env:NEXUS_BASE_URL=\"${baseUrl}\"\n$env:NEXUS_WORKER_TOKEN=\"${token}\"\nnode .\\workers\\nexus-worker\\index.mjs`;
+      return `$env:${transport.key}=\"${transport.value}\"\n$env:NEXUS_WORKER_TOKEN=\"${token}\"\nnode .\\workers\\nexus-worker\\index.mjs`;
     }
-    return `NEXUS_BASE_URL='${baseUrl}' NEXUS_WORKER_TOKEN='${token}' node workers/nexus-worker/index.mjs`;
+    return `${transport.key}='${transport.value}' NEXUS_WORKER_TOKEN='${token}' node workers/nexus-worker/index.mjs`;
   }, [baseUrl, platform, token]);
 
   async function enroll(event: FormEvent) {
