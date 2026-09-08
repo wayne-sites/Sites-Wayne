@@ -42,7 +42,7 @@ async function rpc<T>(name: string, body: Record<string, unknown>) {
     },
     body: JSON.stringify(body),
   }, 10_000);
-  if (!response.ok) throw new Error(`builder_job_store_${response.status}_${(await response.text()).slice(0, 300)}`);
+  if (!response.ok) throw new Error(`builder_job_store_${response.status}`);
   return await response.json() as T;
 }
 
