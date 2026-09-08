@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { NexusWorkerEnrollment } from "./nexus-worker-enrollment";
+import { NexusWorkerJobRunner } from "./nexus-worker-job-runner";
 import styles from "./nexus-studio-home.module.css";
 
 type ProjectType =
@@ -158,6 +159,7 @@ export function NexusStudioHome({ initialProjects, coreReady }: { initialProject
         )}
       </section>
 
+      <NexusWorkerJobRunner projects={projects.map(({ id, name }) => ({ id, name }))} />
       <NexusWorkerEnrollment />
     </div>
   );
