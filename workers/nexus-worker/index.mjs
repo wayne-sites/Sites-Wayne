@@ -23,20 +23,32 @@ function platformName() {
   return "other";
 }
 
-function baseUrl() {
-  const raw = process.env.NEXUS_BASE_URL?.trim();
-  if (!raw) throw new Error("NEXUS_BASE_URL_required");
-  const url = new URL(raw);
-  const localHttp = url.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
-  if (url.protocol !== "https:" && !localHttp) throw new Error("NEXUS_BASE_URL_must_use_https");
-  url.pathname = "/";
-  url.search = "";
+function normalizeHttpsUrl(raw, name, allowLocal = false) {
+  if (!raw) return "";
+  const url = new URL(raw.trim());
+  const localHttp = allowLocal && url.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+  if (url.protocol !== "https:" && !localHttp) throw new Error(`${name}_must_use_https`);
   url.hash = "";
   return url.toString().replace(/\/$/, "");
 }
 
+function baseUrl() {
+  const raw = process.env.NEXUS_BASE_URL?.trim();
+  if (!raw) return "";
+  const url = new URL(normalizeHttpsUrl(raw, "NEXUS_BASE_URL", true));
+  url.pathname = "/";
+  url.search = "";
+  return url.toString().replace(/\/$/, "");
+}
+
+function gatewayUrl() {
+  const raw = process.env.NEXUS_WORKER_GATEWAY_URL?.trim();
+  return raw ? normalizeHttpsUrl(raw, "NEXUS_WORKER_GATEWAY_URL") : "";
+}
+
 const config = {
   baseUrl: baseUrl(),
+  gatewayUrl: gatewayUrl(),
   token: process.env.NEXUS_WORKER_TOKEN?.trim() || "",
   name: (process.env.NEXUS_WORKER_NAME?.trim() || os.hostname() || "Nexus Worker").slice(0, 120),
   platform: platformName(),
@@ -46,6 +58,7 @@ const config = {
 };
 
 if (!TOKEN_PATTERN.test(config.token)) throw new Error("NEXUS_WORKER_TOKEN_invalid");
+if (!config.gatewayUrl && !config.baseUrl) throw new Error("NEXUS_WORKER_GATEWAY_URL_or_NEXUS_BASE_URL_required");
 if (config.name.length < 2) throw new Error("NEXUS_WORKER_NAME_invalid");
 
 let stopping = false;
@@ -58,9 +71,34 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function gatewayAction(path) {
+  if (path === "/api/nexus/workers/heartbeat") return "heartbeat";
+  if (path === "/api/nexus/workers/jobs/claim") return "claim";
+  if (path === "/api/nexus/workers/jobs/finish") return "finish";
+  throw new Error("worker_gateway_path_unsupported");
+}
+
 async function api(path, init = {}) {
-  const response = await fetch(`${config.baseUrl}${path}`, {
+  let url;
+  let body = init.body;
+
+  if (config.gatewayUrl) {
+    const action = gatewayAction(path);
+    let payload = null;
+    if (typeof init.body === "string" && init.body.length > 0) {
+      try { payload = JSON.parse(init.body); }
+      catch { throw new Error("worker_gateway_payload_invalid"); }
+    }
+    url = config.gatewayUrl;
+    body = JSON.stringify({ action, payload });
+  } else {
+    url = `${config.baseUrl}${path}`;
+  }
+
+  const response = await fetch(url, {
     ...init,
+    method: "POST",
+    body,
     signal: AbortSignal.timeout(15000),
     headers: {
       authorization: `Bearer ${config.token}`,
@@ -77,7 +115,11 @@ async function api(path, init = {}) {
   }
 
   if (!response.ok) {
-    const code = data && typeof data.code === "string" ? data.code : `http_${response.status}`;
+    const code = data && typeof data.error === "string"
+      ? data.error
+      : data && typeof data.code === "string"
+        ? data.code
+        : `http_${response.status}`;
     throw new Error(code);
   }
   return data;
@@ -157,6 +199,7 @@ async function processOneJob() {
 
 async function main() {
   console.log(`[NEXUS] worker ${config.name} iniciando em ${config.platform}`);
+  console.log(`[NEXUS] transport: ${config.gatewayUrl ? "supabase-edge" : "vercel-api"}`);
   console.log(`[NEXUS] capabilities: ${WORKER_CAPABILITIES.join(", ")}`);
   await heartbeat();
   console.log("[NEXUS] heartbeat aceito; worker online");
