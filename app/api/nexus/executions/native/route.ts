@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { planNexusExecutionV2 } from "@/lib/nexus-capability-router";
 import { executeNexusNativeCapability } from "@/lib/nexus-native-tools";
 import { NEXUS_DEFAULT_RUNTIME } from "@/lib/nexus-tool-network";
+import { persistNexusNativeExecutionForUser } from "@/lib/server/nexus-core-store";
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { apiError, bodyWithinLimit, isSameOrigin, requestId } from "@/lib/server/http";
 import { log } from "@/lib/server/logger";
@@ -12,6 +13,12 @@ function cleanCapability(value: unknown) {
   const capability = value.trim().toLowerCase();
   if (!/^[a-z0-9]+(?:[._-][a-z0-9]+){1,7}$/.test(capability) || capability.length > 120) return null;
   return capability;
+}
+
+function cleanUuid(value: unknown) {
+  if (typeof value !== "string") return null;
+  const id = value.trim().toLowerCase();
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id) ? id : null;
 }
 
 export async function POST(request: NextRequest) {
@@ -37,7 +44,9 @@ export async function POST(request: NextRequest) {
 
   const body = json as Record<string, unknown>;
   const capability = cleanCapability(body.capability);
+  const projectId = cleanUuid(body.project_id);
   if (!capability) return apiError("Capability inválida.", 400, id, "invalid_capability");
+  if (!projectId) return apiError("Projeto Nexus inválido.", 400, id, "invalid_project_id");
 
   const plan = planNexusExecutionV2(capability, NEXUS_DEFAULT_RUNTIME, { zeroCostMode: true, allowPaid: false });
   if (plan.status !== "ready" || plan.execution !== "native" || !plan.toolId) {
@@ -47,16 +56,59 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  let result;
   try {
-    const result = executeNexusNativeCapability(capability, body.input);
-    log("info", "nexus-native", "execution_succeeded", { requestId: id, userId: user.id, capability, toolId: result.toolId });
+    result = executeNexusNativeCapability(capability, body.input);
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "native_execution_failed";
+    log("warn", "nexus-native", "execution_failed", { requestId: id, userId: user.id, projectId, capability, code });
+    return apiError("Não foi possível executar esta capability nativa.", 400, id, code);
+  }
+
+  try {
+    const persistence = await persistNexusNativeExecutionForUser({
+      userId: user.id,
+      projectId,
+      toolId: result.toolId,
+      capability,
+      executionInput: body.input as Record<string, unknown>,
+      executionOutput: result.output,
+    });
+
+    log("info", "nexus-native", "execution_persisted", {
+      requestId: id,
+      userId: user.id,
+      projectId,
+      capability,
+      toolId: result.toolId,
+      toolRunId: persistence.tool_run_id,
+      artifactId: persistence.artifact_id,
+    });
+
     return NextResponse.json(
-      { result, artifactPersisted: false, persistenceStatus: "nexus_core_schema_pending", requestId: id },
+      {
+        result,
+        artifactPersisted: true,
+        persistenceStatus: "persisted",
+        execution: {
+          toolRunId: persistence.tool_run_id,
+          artifactId: persistence.artifact_id,
+          artifactPath: persistence.artifact_path,
+          artifactKind: persistence.artifact_kind,
+        },
+        requestId: id,
+      },
       { headers: { "cache-control": "no-store", "x-request-id": id } },
     );
   } catch (error) {
-    const code = error instanceof Error ? error.message : "native_execution_failed";
-    log("warn", "nexus-native", "execution_failed", { requestId: id, userId: user.id, capability, code });
-    return apiError("Não foi possível executar esta capability nativa.", 400, id, code);
+    const message = error instanceof Error ? error.message : "nexus_native_persistence_failed";
+    const projectNotOwned = message.includes("nexus_project_not_owned");
+    log("error", "nexus-native", "persistence_failed", { requestId: id, userId: user.id, projectId, capability, toolId: result.toolId, error });
+    return apiError(
+      projectNotOwned ? "Projeto Nexus não encontrado." : "A execução ocorreu, mas não foi possível persistir o artefato com segurança.",
+      projectNotOwned ? 404 : 503,
+      id,
+      projectNotOwned ? "nexus_project_not_found" : "nexus_artifact_persistence_failed",
+    );
   }
 }
