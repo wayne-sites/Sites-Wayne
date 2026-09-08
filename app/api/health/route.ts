@@ -28,6 +28,7 @@ export function GET() {
   const build = {
     commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) || null,
     environment: process.env.VERCEL_ENV || null,
+    nexusWorkerRuntime: "safe-v1",
   };
   return NextResponse.json({
     status: limited ? "limited" : "operational",
