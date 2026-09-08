@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
+import { NexusWorkerEnrollment } from "./nexus-worker-enrollment";
 import styles from "./nexus-studio-home.module.css";
 
 type ProjectType =
@@ -156,6 +157,8 @@ export function NexusStudioHome({ initialProjects, coreReady }: { initialProject
           <div className={styles.empty}><strong>Nenhum projeto persistente ainda.</strong><p>Crie o primeiro projeto acima. O histórico deixa de depender apenas do navegador.</p></div>
         )}
       </section>
+
+      <NexusWorkerEnrollment />
     </div>
   );
 }
