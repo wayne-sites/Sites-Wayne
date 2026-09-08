@@ -1,10 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseNexusWorkerJobRequest } from "@/lib/nexus-worker-jobs";
-import { enqueueNexusWorkerJobForUser } from "@/lib/server/nexus-worker-store";
+import { enqueueNexusWorkerJobForUser, listNexusWorkerJobsForUser } from "@/lib/server/nexus-worker-store";
 import { apiError, bodyWithinLimit, isSameOrigin, requestId } from "@/lib/server/http";
 import { log } from "@/lib/server/logger";
 import { rateLimit } from "@/lib/server/rate-limit";
 import { getCurrentUser } from "@/lib/supabase/auth";
+
+export async function GET(request: NextRequest) {
+  const id = requestId(request);
+  const user = await getCurrentUser();
+  if (!user) return apiError("Autenticação necessária.", 401, id, "auth_required");
+
+  try {
+    const jobs = await listNexusWorkerJobsForUser(user.id, 20);
+    return NextResponse.json(
+      { jobs, requestId: id },
+      { headers: { "cache-control": "no-store", "x-request-id": id } },
+    );
+  } catch (error) {
+    log("error", "nexus-worker", "job_status_list_failed", { requestId: id, userId: user.id, error });
+    return apiError("Não foi possível consultar os jobs do Nexus Worker.", 503, id, "worker_jobs_unavailable");
+  }
+}
 
 export async function POST(request: NextRequest) {
   const id = requestId(request);
