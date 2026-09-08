@@ -25,7 +25,7 @@ export type BuilderAgentJobStatusView = {
 
 function config() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("builder_job_store_not_configured");
   return { url, key };
 }
@@ -42,7 +42,7 @@ async function rpc<T>(name: string, body: Record<string, unknown>) {
     },
     body: JSON.stringify(body),
   }, 10_000);
-  if (!response.ok) throw new Error(`builder_job_store_${response.status}_${(await response.text()).slice(0, 300)}`);
+  if (!response.ok) throw new Error(`builder_job_store_${response.status}`);
   return await response.json() as T;
 }
 
