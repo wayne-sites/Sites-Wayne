@@ -1,7 +1,7 @@
 import "server-only";
 import type { NexusWorkerAnnouncement, NexusWorkerPlatform } from "@/lib/nexus-worker-protocol";
 import type { NexusWorkerJobCompletion, NexusWorkerJobRequest } from "@/lib/nexus-worker-jobs";
-import { fetchWithTimeout } from "@/lib/server/http";
+import { fetchSafeGet, fetchWithTimeout } from "@/lib/server/http";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/server/supabase-env";
 
 export type NexusWorkerEnrollmentResult = {
@@ -48,6 +48,23 @@ export type NexusWorkerJobFinishResult = {
   artifact_kind?: string;
 };
 
+export type NexusWorkerJobStatus = {
+  id: string;
+  project_id: string;
+  tool_id: string | null;
+  capability: string;
+  status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+  output: Record<string, unknown> | null;
+  error: string | null;
+  claim_attempts: number;
+  tool_run_id: string | null;
+  artifact_id: string | null;
+  queued_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  updated_at: string;
+};
+
 function config() {
   const url = getSupabaseUrl();
   const key = getSupabaseSecretKey();
@@ -55,16 +72,20 @@ function config() {
   return { url, key };
 }
 
+function headers(key: string) {
+  return {
+    apikey: key,
+    authorization: `Bearer ${key}`,
+    "content-type": "application/json",
+  };
+}
+
 async function rpc<T>(name: string, body: Record<string, unknown>) {
   const { url, key } = config();
   const response = await fetchWithTimeout(`${url}/rest/v1/rpc/${name}`, {
     method: "POST",
     cache: "no-store",
-    headers: {
-      apikey: key,
-      authorization: `Bearer ${key}`,
-      "content-type": "application/json",
-    },
+    headers: headers(key),
     body: JSON.stringify(body),
   });
   if (!response.ok) throw new Error(`nexus_worker_${response.status}_${await response.text()}`);
@@ -100,6 +121,33 @@ export function enqueueNexusWorkerJobForUser(userId: string, job: NexusWorkerJob
     p_input: job.input,
     p_zero_cost_mode: true,
   });
+}
+
+export async function listNexusWorkerJobsForUser(userId: string, limit = 20) {
+  const { url, key } = config();
+  const safeLimit = Math.max(1, Math.min(limit, 50));
+  const select = [
+    "id",
+    "project_id",
+    "tool_id",
+    "capability",
+    "status",
+    "output",
+    "error",
+    "claim_attempts",
+    "tool_run_id",
+    "artifact_id",
+    "queued_at",
+    "started_at",
+    "finished_at",
+    "updated_at",
+  ].join(",");
+  const response = await fetchSafeGet(
+    `${url}/rest/v1/nexus_jobs?requested_by=eq.${encodeURIComponent(userId)}&select=${select}&order=queued_at.desc&limit=${safeLimit}`,
+    { cache: "no-store", headers: headers(key) },
+  );
+  if (!response.ok) throw new Error(`nexus_worker_jobs_${response.status}_${await response.text()}`);
+  return await response.json() as NexusWorkerJobStatus[];
 }
 
 export function claimNexusWorkerJob(tokenHash: string) {
