@@ -42,6 +42,10 @@ export type NexusWorkerJobFinishResult = {
   job_id: string;
   status: "succeeded" | "failed";
   finished_at: string;
+  tool_run_id?: string;
+  artifact_id?: string;
+  artifact_path?: string;
+  artifact_kind?: string;
 };
 
 function config() {
