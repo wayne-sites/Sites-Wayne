@@ -45,7 +45,7 @@ export function NexusWorkerJobRunner({ projects }: { projects: Project[] }) {
   );
   const [projectId, setProjectId] = useState(preferredProject?.id || "");
   const [capability, setCapability] = useState<(typeof capabilities)[number]["id"]>("data.json.validate");
-  const [text, setText] = useState(capabilities[0].defaultText);
+  const [text, setText] = useState<string>(capabilities[0].defaultText);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
   const [job, setJob] = useState<JobStatus | null>(null);
