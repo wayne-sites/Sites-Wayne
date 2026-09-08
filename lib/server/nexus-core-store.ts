@@ -27,6 +27,13 @@ export type NexusProject = {
   artifacts?: Array<{ id: string; kind: string; name: string; path: string; version: number }>;
 };
 
+export type NexusNativePersistenceResult = {
+  tool_run_id: string;
+  artifact_id: string;
+  artifact_path: string;
+  artifact_kind: string;
+};
+
 function config() {
   const url = getSupabaseUrl();
   const key = getSupabaseSecretKey();
@@ -82,4 +89,25 @@ export async function createNexusProjectForUser(userId: string, input: NexusProj
     }),
   });
   return rows[0] || null;
+}
+
+export async function persistNexusNativeExecutionForUser(input: {
+  userId: string;
+  projectId: string;
+  toolId: string;
+  capability: string;
+  executionInput: Record<string, unknown>;
+  executionOutput: Record<string, unknown>;
+}) {
+  return request<NexusNativePersistenceResult>("rpc/nexus_record_native_execution", {
+    method: "POST",
+    body: JSON.stringify({
+      p_owner_user_id: input.userId,
+      p_project_id: input.projectId,
+      p_tool_id: input.toolId,
+      p_capability: input.capability,
+      p_input: input.executionInput,
+      p_output: input.executionOutput,
+    }),
+  });
 }
