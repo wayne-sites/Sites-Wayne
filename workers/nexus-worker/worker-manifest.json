@@ -1,6 +1,6 @@
 {
   "name": "nexus-worker",
-  "version": "0.1.0-preview",
+  "version": "0.2.0-preview",
   "protocolVersion": "1",
   "minimumNode": "22.13.0",
   "entry": "index.mjs",
@@ -10,10 +10,17 @@
     "linux": "start.sh",
     "macos": "start.sh"
   },
+  "installers": {
+    "windows": "install.ps1",
+    "linux": "install.sh",
+    "macos": "install.sh"
+  },
   "files": [
     "README.md",
     "doctor.mjs",
     "index.mjs",
+    "install.ps1",
+    "install.sh",
     "runtime.mjs",
     "start.ps1",
     "start.sh",
@@ -38,6 +45,9 @@
     "docker": false,
     "browserAutomation": false,
     "remotePlainHttp": false,
-    "tokenStoredByLauncher": false
+    "tokenStoredByLauncher": false,
+    "tokenStoredByInstaller": false,
+    "autostart": false,
+    "gatewayStoredLocally": true
   }
 }

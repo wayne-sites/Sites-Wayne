@@ -37,13 +37,13 @@ export function NexusWorkerEnrollment() {
   const command = useMemo(() => {
     if (!token) return "";
     const transport = workerGatewayUrl
-      ? { key: "NEXUS_WORKER_GATEWAY_URL", value: workerGatewayUrl }
-      : { key: "NEXUS_BASE_URL", value: baseUrl };
+      ? workerGatewayUrl
+      : baseUrl;
 
     if (platform === "windows") {
-      return `$env:${transport.key}=\"${transport.value}\"\n& .\\workers\\nexus-worker\\start.ps1`;
+      return `& .\\install.ps1 -GatewayUrl \"${transport}\" -Start`;
     }
-    return `${transport.key}='${transport.value}' bash workers/nexus-worker/start.sh`;
+    return `bash ./install.sh --gateway '${transport}' --start`;
   }, [baseUrl, platform, token]);
 
   async function enroll(event: FormEvent) {
@@ -127,13 +127,13 @@ export function NexusWorkerEnrollment() {
 
           <div className={styles.commandBlock}>
             <div><span>Worker ID</span><code>{workerId}</code></div>
-            <p>Com o repositório `Sites-Wayne` disponível neste computador e Node.js 22.13+, execute o launcher abaixo. Ele pedirá o token sem incluí-lo no histórico, rodará o Nexus Doctor e só iniciará o worker se o preflight passar:</p>
+            <p>Extraia o pacote verificado do Nexus Worker, abra o terminal nessa pasta e execute o instalador abaixo. Ele verifica a integridade, salva somente o endpoint do gateway, pede o token sem incluí-lo no histórico, roda o Nexus Doctor e inicia o worker.</p>
             <pre>{command}</pre>
-            <button type="button" onClick={() => copy(command, "command")}>{copied === "command" ? "INICIALIZAÇÃO COPIADA" : "COPIAR INICIALIZAÇÃO"}</button>
+            <button type="button" onClick={() => copy(command, "command")}>{copied === "command" ? "INSTALAÇÃO COPIADA" : "COPIAR INSTALAÇÃO"}</button>
           </div>
 
           <div className={styles.flow}>
-            <span>DOCTOR</span><b>→</b><span>HEARTBEAT</span><b>→</b><span>CLAIM LEASE</span><b>→</b><span>ALLOWLIST</span><b>→</b><span>RESULT</span><b>→</b><span>AUDIT</span>
+            <span>VERIFY</span><b>→</b><span>INSTALL</span><b>→</b><span>DOCTOR</span><b>→</b><span>HEARTBEAT</span><b>→</b><span>CLAIM</span><b>→</b><span>RESULT</span><b>→</b><span>AUDIT</span>
           </div>
         </div>
       )}

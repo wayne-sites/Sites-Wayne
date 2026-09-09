@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 $WorkerDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Doctor = Join-Path $WorkerDir "doctor.mjs"
 $Worker = Join-Path $WorkerDir "index.mjs"
+$GatewayFile = Join-Path $WorkerDir "gateway.url"
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
   Write-Error "Node.js 22.13+ nao encontrado no PATH."
@@ -18,6 +19,10 @@ if (-not $env:NEXUS_WORKER_TOKEN) {
   finally {
     [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)
   }
+}
+
+if (-not $env:NEXUS_WORKER_GATEWAY_URL -and -not $env:NEXUS_BASE_URL -and (Test-Path $GatewayFile)) {
+  $env:NEXUS_WORKER_GATEWAY_URL = (Get-Content -Raw $GatewayFile).Trim()
 }
 
 if (-not $env:NEXUS_WORKER_GATEWAY_URL -and -not $env:NEXUS_BASE_URL) {

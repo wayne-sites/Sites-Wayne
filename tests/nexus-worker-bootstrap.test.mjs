@@ -37,18 +37,24 @@ test("worker doctor prova allowlist basica e bloqueio de shell", () => {
   assert.deepEqual(runtimeSelfTest(), { json: true, markdown: true, shellBlocked: true });
 });
 
-test("launchers pedem token interativamente e Studio nao o injeta no comando", async () => {
-  const [powershell, shell, studio] = await Promise.all([
+test("launchers pedem token interativamente e aceitam gateway local instalado", async () => {
+  const [powershell, shell] = await Promise.all([
     readFile(new URL("../workers/nexus-worker/start.ps1", import.meta.url), "utf8"),
     readFile(new URL("../workers/nexus-worker/start.sh", import.meta.url), "utf8"),
-    readFile(new URL("../components/nexus-worker-enrollment.tsx", import.meta.url), "utf8"),
   ]);
-
   assert.match(powershell, /Read-Host .*Nexus Worker.*-AsSecureString/);
   assert.match(powershell, /doctor\.mjs/);
+  assert.match(powershell, /gateway\.url/);
   assert.match(shell, /read -r -s -p/);
   assert.match(shell, /doctor\.mjs/);
+  assert.match(shell, /gateway\.url/);
+});
+
+test("Studio usa instalador sem injetar token no comando", async () => {
+  const studio = await readFile(new URL("../components/nexus-worker-enrollment.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(studio, /NEXUS_WORKER_TOKEN=\\?"\$\{token\}/);
-  assert.match(studio, /start\.ps1/);
-  assert.match(studio, /start\.sh/);
+  assert.match(studio, /install\.ps1/);
+  assert.match(studio, /install\.sh/);
+  assert.match(studio, /-Start/);
+  assert.match(studio, /--start/);
 });

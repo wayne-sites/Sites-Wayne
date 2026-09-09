@@ -4,7 +4,9 @@ on:
   pull_request:
     paths:
       - "workers/nexus-worker/**"
+      - "components/nexus-worker-enrollment.tsx"
       - "tests/nexus-worker-package.test.mjs"
+      - "tests/nexus-worker-bootstrap.test.mjs"
       - ".github/workflows/nexus-worker-package.yml"
   workflow_dispatch:
 
@@ -25,21 +27,21 @@ jobs:
         with:
           node-version: 22.13.0
       - name: Validate package contract
-        run: node --test tests/nexus-worker-package.test.mjs
+        run: node --test tests/nexus-worker-package.test.mjs tests/nexus-worker-bootstrap.test.mjs
       - name: Assemble worker bundle
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist/nexus-worker
-          cp workers/nexus-worker/README.md dist/nexus-worker/
-          cp workers/nexus-worker/doctor.mjs dist/nexus-worker/
-          cp workers/nexus-worker/index.mjs dist/nexus-worker/
-          cp workers/nexus-worker/runtime.mjs dist/nexus-worker/
-          cp workers/nexus-worker/start.ps1 dist/nexus-worker/
-          cp workers/nexus-worker/start.sh dist/nexus-worker/
-          cp workers/nexus-worker/verify.mjs dist/nexus-worker/
-          cp workers/nexus-worker/worker-manifest.json dist/nexus-worker/
-          chmod +x dist/nexus-worker/start.sh
+          MANIFEST="workers/nexus-worker/worker-manifest.json" OUT="dist/nexus-worker" node <<'NODE'
+          const fs = require("node:fs");
+          const path = require("node:path");
+          const manifest = JSON.parse(fs.readFileSync(process.env.MANIFEST, "utf8"));
+          for (const file of manifest.files) {
+            fs.copyFileSync(path.join("workers/nexus-worker", file), path.join(process.env.OUT, file));
+          }
+          NODE
+          chmod +x dist/nexus-worker/start.sh dist/nexus-worker/install.sh
           node dist/nexus-worker/verify.mjs --write-checksums
           node dist/nexus-worker/verify.mjs
       - name: Create archives
