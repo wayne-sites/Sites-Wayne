@@ -41,9 +41,9 @@ export function NexusWorkerEnrollment() {
       : { key: "NEXUS_BASE_URL", value: baseUrl };
 
     if (platform === "windows") {
-      return `$env:${transport.key}=\"${transport.value}\"\n$env:NEXUS_WORKER_TOKEN=\"${token}\"\nnode .\\workers\\nexus-worker\\index.mjs`;
+      return `$env:${transport.key}=\"${transport.value}\"\n& .\\workers\\nexus-worker\\start.ps1`;
     }
-    return `${transport.key}='${transport.value}' NEXUS_WORKER_TOKEN='${token}' node workers/nexus-worker/index.mjs`;
+    return `${transport.key}='${transport.value}' bash workers/nexus-worker/start.sh`;
   }, [baseUrl, platform, token]);
 
   async function enroll(event: FormEvent) {
@@ -127,13 +127,13 @@ export function NexusWorkerEnrollment() {
 
           <div className={styles.commandBlock}>
             <div><span>Worker ID</span><code>{workerId}</code></div>
-            <p>Com o repositório `Sites-Wayne` disponível neste computador e Node.js 22+, execute:</p>
+            <p>Com o repositório `Sites-Wayne` disponível neste computador e Node.js 22.13+, execute o launcher abaixo. Ele pedirá o token sem incluí-lo no histórico, rodará o Nexus Doctor e só iniciará o worker se o preflight passar:</p>
             <pre>{command}</pre>
-            <button type="button" onClick={() => copy(command, "command")}>{copied === "command" ? "COMANDO COPIADO" : "COPIAR COMANDO"}</button>
+            <button type="button" onClick={() => copy(command, "command")}>{copied === "command" ? "INICIALIZAÇÃO COPIADA" : "COPIAR INICIALIZAÇÃO"}</button>
           </div>
 
           <div className={styles.flow}>
-            <span>HEARTBEAT</span><b>→</b><span>CLAIM LEASE</span><b>→</b><span>ALLOWLIST</span><b>→</b><span>RESULT</span><b>→</b><span>AUDIT</span>
+            <span>DOCTOR</span><b>→</b><span>HEARTBEAT</span><b>→</b><span>CLAIM LEASE</span><b>→</b><span>ALLOWLIST</span><b>→</b><span>RESULT</span><b>→</b><span>AUDIT</span>
           </div>
         </div>
       )}
