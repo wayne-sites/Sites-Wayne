@@ -5,7 +5,7 @@ Runtime portátil e low-risk do Nexus Brasil para Windows, Linux e macOS.
 ## Requisitos
 
 - Node.js 22.13 ou superior.
-- Uma credencial `nxw1_...` ou, quando o Pairing v1 estiver ativado no servidor, um código temporário `nxp1_...` gerado no Nexus Studio.
+- Uma credencial `nxw1_...` ou um código temporário `nxp1_...` gerado no Nexus Studio.
 - Gateway HTTPS do Nexus Worker. HTTP só é aceito em loopback local para desenvolvimento.
 
 ## Verificar o pacote
@@ -40,11 +40,38 @@ Destino padrão no Linux: `${XDG_DATA_HOME:-~/.local/share}/nexus-worker`. No ma
 
 O launcher solicita interativamente um token `nxw1_` ou um código temporário `nxp1_`. Quando recebe `nxp1_`, troca o código no gateway por um token final somente em memória, apaga a variável de pareamento e então executa o Nexus Doctor.
 
+## Provar o primeiro worker físico
+
+A versão `0.3.1-preview` inclui um fluxo de prova sanitizado. Ele verifica a integridade, solicita o segredo sem colocá-lo no histórico, executa o Doctor, envia um heartbeat real e imprime apenas metadados seguros. O token e o código de pareamento não são exibidos.
+
+### Windows
+
+```powershell
+.\prove.ps1
+```
+
+### Linux / macOS
+
+```bash
+./prove.sh
+```
+
+Saída esperada:
+
+```text
+[NEXUS PROOF] OK proof=<uuid>
+[NEXUS PROOF] protocol=1 node=<versao> platform=<plataforma> transport=supabase-edge
+[NEXUS PROOF] runtime=json:ok markdown:ok shell:blocked
+[NEXUS PROOF] heartbeat=200 credential=redacted
+```
+
+Depois da prova, o mesmo processo inicia o worker normal mantendo a credencial apenas em memória. O `prove` não faz `claim` automaticamente, para não retirar jobs reais da fila sem intenção explícita. Para executar somente a prova e sair, defina `NEXUS_WORKER_PROVE_ONLY=1` antes de chamar o launcher.
+
 ## Pairing v1
 
-O suporte cliente está staged nesta versão. O código `nxp1_` tem 96 bits de aleatoriedade, validade máxima de 10 minutos e uso único. O banco guarda somente SHA-256 do código; na troca, o gateway gera o token final `nxw1_`, persiste apenas o SHA-256 desse token e devolve o segredo bruto uma única vez ao processo do worker.
+O backend de Pairing v1 está ativo no Nexus Worker Gateway. O código `nxp1_` tem 96 bits de aleatoriedade, validade máxima de 10 minutos e uso único. O banco guarda somente SHA-256 do código; na troca, o gateway gera o token final `nxw1_`, persiste apenas o SHA-256 desse token e devolve o segredo bruto uma única vez ao processo do worker.
 
-Enquanto a migration e a nova versão do Edge Gateway não estiverem publicadas, continue usando o fluxo legado por `nxw1_`.
+A interface de Pairing está habilitada no Preview da PR atual; a UI de Production continua dependente da publicação controlada da versão correspondente do Nexus.
 
 ## Autostart
 
