@@ -10,6 +10,11 @@ export type NexusWorkerEnrollmentResult = {
   status: "offline";
 };
 
+export type NexusWorkerPairingResult = {
+  pairing_id: string;
+  expires_at: string;
+};
+
 export type NexusWorkerHeartbeatResult = {
   worker_id: string;
   status: "online";
@@ -88,7 +93,7 @@ async function rpc<T>(name: string, body: Record<string, unknown>) {
     headers: headers(key),
     body: JSON.stringify(body),
   });
-  if (!response.ok) throw new Error(`nexus_worker_${response.status}_${await response.text()}`);
+  if (!response.ok) throw new Error(`nexus_worker_${response.status}`);
   return await response.json() as T;
 }
 
@@ -103,6 +108,28 @@ export function enrollNexusWorkerForUser(input: {
     p_name: input.name,
     p_platform: input.platform,
     p_token_hash: input.tokenHash,
+  });
+}
+
+export function createNexusWorkerPairingForUser(input: {
+  userId: string;
+  name: string;
+  platform: NexusWorkerPlatform;
+  codeHash: string;
+}) {
+  return rpc<NexusWorkerPairingResult>("nexus_create_worker_pairing", {
+    p_owner_user_id: input.userId,
+    p_name: input.name,
+    p_platform: input.platform,
+    p_code_hash: input.codeHash,
+    p_ttl_seconds: 600,
+  });
+}
+
+export function redeemNexusWorkerPairing(codeHash: string, tokenHash: string) {
+  return rpc<NexusWorkerEnrollmentResult>("nexus_redeem_worker_pairing", {
+    p_code_hash: codeHash,
+    p_token_hash: tokenHash,
   });
 }
 
@@ -146,7 +173,7 @@ export async function listNexusWorkerJobsForUser(userId: string, limit = 20) {
     `${url}/rest/v1/nexus_jobs?requested_by=eq.${encodeURIComponent(userId)}&select=${select}&order=queued_at.desc&limit=${safeLimit}`,
     { cache: "no-store", headers: headers(key) },
   );
-  if (!response.ok) throw new Error(`nexus_worker_jobs_${response.status}_${await response.text()}`);
+  if (!response.ok) throw new Error(`nexus_worker_jobs_${response.status}`);
   return await response.json() as NexusWorkerJobStatus[];
 }
 
