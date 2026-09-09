@@ -73,7 +73,7 @@ test("launchers aceitam pairing sem persistir codigo", async () => {
   assert.match(powershell, /Remove-Item Env:NEXUS_WORKER_PAIRING_CODE/);
   assert.doesNotMatch(shell, /gateway\.url.*PAIRING/i);
   const value = JSON.parse(manifest);
-  assert.equal(value.version, "0.3.0-preview");
+  assert.equal(value.version, "0.3.1-preview");
   assert.ok(value.files.includes("pair.mjs"));
   assert.equal(value.security.pairingCodeStoredByLauncher, false);
   assert.equal(value.security.pairingMaxTtlSeconds, 600);
