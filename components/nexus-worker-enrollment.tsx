@@ -33,9 +33,9 @@ type PairingResponse = {
 
 const publicSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, "") || "";
 const workerGatewayUrl = publicSupabaseUrl ? `${publicSupabaseUrl}/functions/v1/nexus-worker-gateway` : "";
-const pairingEnabled = process.env.NEXT_PUBLIC_NEXUS_WORKER_PAIRING_V1 === "1" && Boolean(workerGatewayUrl);
 
-export function NexusWorkerEnrollment() {
+export function NexusWorkerEnrollment({ pairingEnabled }: { pairingEnabled: boolean }) {
+  const pairingAvailable = pairingEnabled && Boolean(workerGatewayUrl);
   const [name, setName] = useState("Meu Nexus Worker");
   const [platform, setPlatform] = useState<Platform>("windows");
   const [loading, setLoading] = useState(false);
@@ -70,7 +70,7 @@ export function NexusWorkerEnrollment() {
     setCopied("");
 
     try {
-      if (pairingEnabled) {
+      if (pairingAvailable) {
         const response = await fetch("/api/nexus/workers/pairings", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -143,7 +143,7 @@ export function NexusWorkerEnrollment() {
           </select>
         </label>
         <button type="submit" disabled={loading || name.trim().length < 2}>
-          {loading ? "REGISTRANDO..." : pairingEnabled ? "GERAR CÓDIGO DE PAREAMENTO" : "GERAR CREDENCIAL"}
+          {loading ? "REGISTRANDO..." : pairingAvailable ? "GERAR CÓDIGO DE PAREAMENTO" : "GERAR CREDENCIAL"}
         </button>
       </form>
 
