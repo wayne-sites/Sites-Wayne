@@ -7,6 +7,7 @@ on:
       - "components/nexus-worker-enrollment.tsx"
       - "tests/nexus-worker-package.test.mjs"
       - "tests/nexus-worker-bootstrap.test.mjs"
+      - "tests/nexus-worker-pairing.test.mjs"
       - ".github/workflows/nexus-worker-package.yml"
   workflow_dispatch:
 
@@ -27,7 +28,7 @@ jobs:
         with:
           node-version: 22.13.0
       - name: Validate package contract
-        run: node --test tests/nexus-worker-package.test.mjs tests/nexus-worker-bootstrap.test.mjs
+        run: node --test tests/nexus-worker-package.test.mjs tests/nexus-worker-bootstrap.test.mjs tests/nexus-worker-pairing.test.mjs
       - name: Assemble worker bundle
         shell: bash
         run: |
