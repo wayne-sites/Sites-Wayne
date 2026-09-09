@@ -73,14 +73,6 @@ O backend de Pairing v1 está ativo no Nexus Worker Gateway. O código `nxp1_` t
 
 A interface de Pairing está habilitada no Preview da PR atual; a UI de Production continua dependente da publicação controlada da versão correspondente do Nexus.
 
-## Artifact verificado
-
-O artifact `0.3.1-preview` produzido pelo workflow `Nexus Worker Package` contém 14 arquivos e passa `verify.mjs`. O ZIP validado no head `66b158f49064c23f87817fa38919a35ec5b04716` possui SHA-256:
-
-```text
-c7d0f000f3e253b920beba93396b660902d8b75a6b48e3719d09b90fbaf50158
-```
-
 ## Autostart
 
 Autostart desassistido permanece bloqueado nesta versão. Ativá-lo exigiria persistir a credencial do worker; isso só será liberado quando houver integração explícita com armazenamento seguro do sistema operacional. `-EnableAutostart` / `--enable-autostart` falham fechados.
