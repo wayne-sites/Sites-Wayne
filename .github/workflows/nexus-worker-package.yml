@@ -44,14 +44,18 @@ jobs:
           chmod +x dist/nexus-worker/start.sh dist/nexus-worker/install.sh
           node dist/nexus-worker/verify.mjs --write-checksums
           node dist/nexus-worker/verify.mjs
-      - name: Create archives
+      - name: Create and verify archives
         shell: bash
         run: |
           set -euo pipefail
           SHORT_SHA="${GITHUB_SHA::12}"
           tar -czf "dist/nexus-worker-${SHORT_SHA}.tar.gz" -C dist nexus-worker
           (cd dist && zip -qr "nexus-worker-${SHORT_SHA}.zip" nexus-worker)
-          sha256sum "dist/nexus-worker-${SHORT_SHA}.tar.gz" "dist/nexus-worker-${SHORT_SHA}.zip" > dist/ARCHIVE-SHA256SUMS
+          (
+            cd dist
+            sha256sum "nexus-worker-${SHORT_SHA}.tar.gz" "nexus-worker-${SHORT_SHA}.zip" > ARCHIVE-SHA256SUMS
+            sha256sum -c ARCHIVE-SHA256SUMS
+          )
       - name: Upload verified worker package
         uses: actions/upload-artifact@v4
         with:
