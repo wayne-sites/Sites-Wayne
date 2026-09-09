@@ -8,6 +8,7 @@ on:
       - "tests/nexus-worker-package.test.mjs"
       - "tests/nexus-worker-bootstrap.test.mjs"
       - "tests/nexus-worker-pairing.test.mjs"
+      - "tests/nexus-worker-proof.test.mjs"
       - ".github/workflows/nexus-worker-package.yml"
   workflow_dispatch:
 
@@ -28,7 +29,7 @@ jobs:
         with:
           node-version: 22.13.0
       - name: Validate package contract
-        run: node --test tests/nexus-worker-package.test.mjs tests/nexus-worker-bootstrap.test.mjs tests/nexus-worker-pairing.test.mjs
+        run: node --test tests/nexus-worker-package.test.mjs tests/nexus-worker-bootstrap.test.mjs tests/nexus-worker-pairing.test.mjs tests/nexus-worker-proof.test.mjs
       - name: Assemble worker bundle
         shell: bash
         run: |
@@ -42,7 +43,7 @@ jobs:
             fs.copyFileSync(path.join("workers/nexus-worker", file), path.join(process.env.OUT, file));
           }
           NODE
-          chmod +x dist/nexus-worker/start.sh dist/nexus-worker/install.sh
+          chmod +x dist/nexus-worker/start.sh dist/nexus-worker/install.sh dist/nexus-worker/prove.sh
           node dist/nexus-worker/verify.mjs --write-checksums
           node dist/nexus-worker/verify.mjs
       - name: Create and verify archives
