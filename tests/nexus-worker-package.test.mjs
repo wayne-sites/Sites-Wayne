@@ -12,7 +12,7 @@ async function manifest() {
 test("worker package manifest segue o runtime allowlisted", async () => {
   const value = await manifest();
   assert.equal(value.name, "nexus-worker");
-  assert.equal(value.version, "0.3.1-preview");
+  assert.equal(value.version, "0.3.2-preview");
   assert.equal(value.protocolVersion, "1");
   assert.equal(value.minimumNode, "22.13.0");
   assert.deepEqual(value.tools, WORKER_TOOLS);
@@ -29,6 +29,7 @@ test("worker package manifest segue o runtime allowlisted", async () => {
   assert.equal(value.security.pairingMaxTtlSeconds, 600);
   assert.equal(value.security.proofCredentialRedacted, true);
   assert.equal(value.security.proofClaimsJobsByDefault, false);
+  assert.equal(value.security.proofIdContainsCredential, false);
   assert.equal(value.security.autostart, false);
   assert.equal(value.security.gatewayStoredLocally, true);
 });
@@ -55,6 +56,9 @@ test("worker package inclui verificadores, pairing, prova, launchers e instalado
   assert.equal(value.proof.windows, "prove.ps1");
   assert.equal(value.proof.linux, "prove.sh");
   assert.equal(value.proof.macos, "prove.sh");
+  assert.equal(value.proof.backendVerifiable, true);
+  assert.equal(value.proof.sessionStableId, true);
+  assert.equal(value.proof.claimsJobsByDefault, false);
   for (const file of ["verify.mjs", "worker-manifest.json", "install.ps1", "install.sh", "pair.mjs", "prove.mjs", "prove.ps1", "prove.sh"]) {
     assert.ok(value.files.includes(file));
   }

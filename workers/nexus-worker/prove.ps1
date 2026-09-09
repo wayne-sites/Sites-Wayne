@@ -59,6 +59,10 @@ if (-not $env:NEXUS_WORKER_TOKEN) {
   }
 }
 
+if (-not $env:NEXUS_WORKER_PROOF_ID) {
+  $env:NEXUS_WORKER_PROOF_ID = [guid]::NewGuid().ToString().ToLowerInvariant()
+}
+
 Write-Host "[NEXUS PROOF] executando Doctor..."
 & node $Doctor
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -67,12 +71,14 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 if ($env:NEXUS_WORKER_PROVE_ONLY -eq "1") {
   Remove-Item Env:NEXUS_WORKER_TOKEN -ErrorAction SilentlyContinue
+  Remove-Item Env:NEXUS_WORKER_PROOF_ID -ErrorAction SilentlyContinue
   Write-Host "[NEXUS PROOF] prova concluida; worker nao iniciado por NEXUS_WORKER_PROVE_ONLY=1."
   exit 0
 }
 
-Write-Host "[NEXUS PROOF] prova aprovada; iniciando worker com a credencial apenas em memoria."
+Write-Host "[NEXUS PROOF] prova aprovada; iniciando worker com proofId estavel e credencial apenas em memoria."
 & node $Worker
 $exitCode = $LASTEXITCODE
 Remove-Item Env:NEXUS_WORKER_TOKEN -ErrorAction SilentlyContinue
+Remove-Item Env:NEXUS_WORKER_PROOF_ID -ErrorAction SilentlyContinue
 exit $exitCode

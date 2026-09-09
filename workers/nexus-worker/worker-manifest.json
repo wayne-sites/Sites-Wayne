@@ -1,6 +1,6 @@
 {
   "name": "nexus-worker",
-  "version": "0.3.1-preview",
+  "version": "0.3.2-preview",
   "protocolVersion": "1",
   "minimumNode": "22.13.0",
   "entry": "index.mjs",
@@ -12,7 +12,9 @@
     "linux": "prove.sh",
     "macos": "prove.sh",
     "status": "release-candidate",
-    "claimsJobsByDefault": false
+    "claimsJobsByDefault": false,
+    "backendVerifiable": true,
+    "sessionStableId": true
   },
   "launchers": {
     "windows": "start.ps1",
@@ -65,6 +67,7 @@
     "pairingMaxTtlSeconds": 600,
     "proofCredentialRedacted": true,
     "proofClaimsJobsByDefault": false,
+    "proofIdContainsCredential": false,
     "autostart": false,
     "gatewayStoredLocally": true
   }

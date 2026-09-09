@@ -51,15 +51,21 @@ if [[ -z "${NEXUS_WORKER_TOKEN:-}" ]]; then
   fi
 fi
 
+if [[ -z "${NEXUS_WORKER_PROOF_ID:-}" ]]; then
+  NEXUS_WORKER_PROOF_ID="$(node -e "console.log(require('node:crypto').randomUUID())")"
+  export NEXUS_WORKER_PROOF_ID
+fi
+
 echo "[NEXUS PROOF] executando Doctor..."
 node "$DOCTOR"
 node "$PROVE"
 
 if [[ "${NEXUS_WORKER_PROVE_ONLY:-0}" == "1" ]]; then
   unset NEXUS_WORKER_TOKEN
+  unset NEXUS_WORKER_PROOF_ID
   echo "[NEXUS PROOF] prova concluida; worker nao iniciado por NEXUS_WORKER_PROVE_ONLY=1."
   exit 0
 fi
 
-echo "[NEXUS PROOF] prova aprovada; iniciando worker com a credencial apenas em memoria."
+echo "[NEXUS PROOF] prova aprovada; iniciando worker com proofId estavel e credencial apenas em memoria."
 exec node "$WORKER"

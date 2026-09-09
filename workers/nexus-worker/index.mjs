@@ -2,6 +2,7 @@ import os from "node:os";
 import { executeWorkerCapability, WORKER_CAPABILITIES, WORKER_TOOLS } from "./runtime.mjs";
 
 const TOKEN_PATTERN = /^nxw1_[A-Za-z0-9_-]{43}$/;
+const PROOF_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOOL_FOR_CAPABILITY = new Map([
   ["data.json.validate", "nexus-json"],
   ["data.json.format", "nexus-json"],
@@ -46,11 +47,22 @@ function gatewayUrl() {
   return raw ? normalizeHttpsUrl(raw, "NEXUS_WORKER_GATEWAY_URL") : "";
 }
 
+function workerName() {
+  const base = (process.env.NEXUS_WORKER_NAME?.trim() || os.hostname() || "Nexus Worker").slice(0, 120);
+  if (base.length < 2) throw new Error("NEXUS_WORKER_NAME_invalid");
+  const proofId = process.env.NEXUS_WORKER_PROOF_ID?.trim() || "";
+  if (!proofId) return base;
+  if (!PROOF_ID_PATTERN.test(proofId)) throw new Error("NEXUS_WORKER_PROOF_ID_invalid");
+  const suffix = ` [proof:${proofId.toLowerCase()}]`;
+  const maxBaseLength = 120 - suffix.length;
+  return `${base.slice(0, maxBaseLength).trimEnd()}${suffix}`;
+}
+
 const config = {
   baseUrl: baseUrl(),
   gatewayUrl: gatewayUrl(),
   token: process.env.NEXUS_WORKER_TOKEN?.trim() || "",
-  name: (process.env.NEXUS_WORKER_NAME?.trim() || os.hostname() || "Nexus Worker").slice(0, 120),
+  name: workerName(),
   platform: platformName(),
   claimIntervalMs: integerEnv("NEXUS_CLAIM_INTERVAL_MS", 5000, 2000, 60000),
   heartbeatIntervalMs: integerEnv("NEXUS_HEARTBEAT_INTERVAL_MS", 30000, 10000, 90000),
@@ -59,7 +71,6 @@ const config = {
 
 if (!TOKEN_PATTERN.test(config.token)) throw new Error("NEXUS_WORKER_TOKEN_invalid");
 if (!config.gatewayUrl && !config.baseUrl) throw new Error("NEXUS_WORKER_GATEWAY_URL_or_NEXUS_BASE_URL_required");
-if (config.name.length < 2) throw new Error("NEXUS_WORKER_NAME_invalid");
 
 let stopping = false;
 let lastHeartbeatAt = 0;

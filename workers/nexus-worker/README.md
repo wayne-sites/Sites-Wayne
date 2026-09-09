@@ -42,7 +42,7 @@ O launcher solicita interativamente um token `nxw1_` ou um código temporário `
 
 ## Provar o primeiro worker físico
 
-A versão `0.3.1-preview` inclui um fluxo de prova sanitizado. Ele verifica a integridade, solicita o segredo sem colocá-lo no histórico, executa o Doctor, envia um heartbeat real e imprime apenas metadados seguros. O token e o código de pareamento não são exibidos.
+A versão `0.3.2-preview` inclui um fluxo de prova sanitizado e verificável pelo backend. Ele verifica a integridade, solicita o segredo sem colocá-lo no histórico, executa o Doctor, envia um heartbeat real e imprime apenas metadados seguros. O token e o código de pareamento não são exibidos.
 
 ### Windows
 
@@ -62,8 +62,10 @@ Saída esperada:
 [NEXUS PROOF] OK proof=<uuid>
 [NEXUS PROOF] protocol=1 node=<versao> platform=<plataforma> transport=supabase-edge
 [NEXUS PROOF] runtime=json:ok markdown:ok shell:blocked
-[NEXUS PROOF] heartbeat=200 credential=redacted
+[NEXUS PROOF] heartbeat=200 backend=verifiable credential=redacted
 ```
+
+O launcher gera um `proofId` UUID não secreto por sessão. Esse marcador é acrescentado ao `reported_name` enviado nos heartbeats e, portanto, pode ser confirmado depois no backend sem armazenar ou revelar a credencial. Enquanto o worker permanecer nessa sessão, heartbeats posteriores preservam o mesmo `proofId`.
 
 Depois da prova, o mesmo processo inicia o worker normal mantendo a credencial apenas em memória. O `prove` não faz `claim` automaticamente, para não retirar jobs reais da fila sem intenção explícita. Para executar somente a prova e sair, defina `NEXUS_WORKER_PROVE_ONLY=1` antes de chamar o launcher.
 
