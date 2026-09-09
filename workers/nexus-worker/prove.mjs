@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { pathToFileURL } from "node:url";
 import { inspectWorkerEnvironment, runtimeSelfTest } from "./doctor.mjs";
 import { WORKER_CAPABILITIES, WORKER_TOOLS } from "./runtime.mjs";
 
@@ -77,7 +78,7 @@ export async function runPhysicalProof(fetchImpl = fetch) {
   };
 }
 
-const invokedDirectly = Boolean(process.argv[1]) && import.meta.url === new URL(`file://${process.argv[1]}`).href;
+const invokedDirectly = Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (invokedDirectly) {
   runPhysicalProof().then((proof) => {
     console.log(`[NEXUS PROOF] OK proof=${proof.proofId}`);
