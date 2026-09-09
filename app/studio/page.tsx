@@ -25,6 +25,9 @@ export default async function NexusStudioPage() {
     coreReady = false;
   }
 
+  const pairingEnabled = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL?.trim())
+    && (process.env.NEXUS_WORKER_PAIRING_V1 === "1" || process.env.VERCEL_ENV === "preview");
+
   return (
     <ModuleShell
       active="/studio"
@@ -33,7 +36,7 @@ export default async function NexusStudioPage() {
       description="PROJECT, ARTIFACT, TOOL, EXECUTION, INTEGRATION e DEPLOYMENT formam a base persistente do Universal Creation Engine."
       action={<Link className="primary-button" href="/builder">ABRIR BUILDER <span>→</span></Link>}
     >
-      <NexusStudioHome initialProjects={projects} coreReady={coreReady} />
+      <NexusStudioHome initialProjects={projects} coreReady={coreReady} pairingEnabled={pairingEnabled} />
     </ModuleShell>
   );
 }
