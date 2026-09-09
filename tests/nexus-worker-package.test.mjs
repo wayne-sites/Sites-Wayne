@@ -12,7 +12,7 @@ async function manifest() {
 test("worker package manifest segue o runtime allowlisted", async () => {
   const value = await manifest();
   assert.equal(value.name, "nexus-worker");
-  assert.equal(value.version, "0.2.0-preview");
+  assert.equal(value.version, "0.3.0-preview");
   assert.equal(value.protocolVersion, "1");
   assert.equal(value.minimumNode, "22.13.0");
   assert.deepEqual(value.tools, WORKER_TOOLS);
@@ -24,6 +24,9 @@ test("worker package manifest segue o runtime allowlisted", async () => {
   assert.equal(value.security.docker, false);
   assert.equal(value.security.browserAutomation, false);
   assert.equal(value.security.tokenStoredByInstaller, false);
+  assert.equal(value.security.pairingCodeStoredByLauncher, false);
+  assert.equal(value.security.pairingCodeSingleUse, true);
+  assert.equal(value.security.pairingMaxTtlSeconds, 600);
   assert.equal(value.security.autostart, false);
   assert.equal(value.security.gatewayStoredLocally, true);
 });
@@ -37,7 +40,7 @@ test("worker package declara apenas arquivos locais e todos existem", async () =
   }
 });
 
-test("worker package inclui verificadores, launchers e instaladores dos tres sistemas", async () => {
+test("worker package inclui verificadores, pairing, launchers e instaladores dos tres sistemas", async () => {
   const value = await manifest();
   assert.equal(value.launchers.windows, "start.ps1");
   assert.equal(value.launchers.linux, "start.sh");
@@ -45,10 +48,12 @@ test("worker package inclui verificadores, launchers e instaladores dos tres sis
   assert.equal(value.installers.windows, "install.ps1");
   assert.equal(value.installers.linux, "install.sh");
   assert.equal(value.installers.macos, "install.sh");
+  assert.equal(value.pairing, "pair.mjs");
   assert.ok(value.files.includes("verify.mjs"));
   assert.ok(value.files.includes("worker-manifest.json"));
   assert.ok(value.files.includes("install.ps1"));
   assert.ok(value.files.includes("install.sh"));
+  assert.ok(value.files.includes("pair.mjs"));
 });
 
 test("instaladores nao persistem token e bloqueiam autostart inseguro", async () => {
