@@ -17,9 +17,13 @@ function parseEnrollment(value: unknown) {
   return { name, platform: body.platform as NexusWorkerPlatform };
 }
 
+function pairingFeatureEnabled() {
+  return process.env.NEXUS_WORKER_PAIRING_V1 === "1" || process.env.VERCEL_ENV === "preview";
+}
+
 export async function POST(request: NextRequest) {
   const id = requestId(request);
-  if (process.env.NEXUS_WORKER_PAIRING_V1 !== "1") return apiError("Pareamento ainda não ativado.", 503, id, "pairing_not_enabled");
+  if (!pairingFeatureEnabled()) return apiError("Pareamento ainda não ativado.", 503, id, "pairing_not_enabled");
   if (!isSameOrigin(request)) return apiError("Origem não autorizada.", 403, id, "origin_denied");
   if (!bodyWithinLimit(request, 16_384)) return apiError("Solicitação muito grande.", 413, id, "body_too_large");
 
