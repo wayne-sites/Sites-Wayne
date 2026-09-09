@@ -47,7 +47,15 @@ function projectNameFromBrief(brief: string) {
   return first.slice(0, 100);
 }
 
-export function NexusStudioHome({ initialProjects, coreReady }: { initialProjects: NexusProject[]; coreReady: boolean }) {
+export function NexusStudioHome({
+  initialProjects,
+  coreReady,
+  pairingEnabled,
+}: {
+  initialProjects: NexusProject[];
+  coreReady: boolean;
+  pairingEnabled: boolean;
+}) {
   const [brief, setBrief] = useState("");
   const [selectedType, setSelectedType] = useState<ProjectType | null>(null);
   const [mode, setMode] = useState<(typeof creationModes)[number]>("SIMPLE");
@@ -160,7 +168,7 @@ export function NexusStudioHome({ initialProjects, coreReady }: { initialProject
       </section>
 
       <NexusWorkerJobRunner projects={projects.map(({ id, name }) => ({ id, name }))} />
-      <NexusWorkerEnrollment />
+      <NexusWorkerEnrollment pairingEnabled={pairingEnabled} />
     </div>
   );
 }
