@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import styles from "./nexus-worker-enrollment.module.css";
 
 type Platform = "windows" | "linux" | "macos";
+type SecretKind = "token" | "pairing" | "";
 
 type EnrollmentResponse = {
   worker?: {
@@ -20,41 +21,73 @@ type EnrollmentResponse = {
   error?: string;
 };
 
+type PairingResponse = {
+  pairing?: {
+    id: string;
+    code: string;
+    displayOnce: true;
+    expiresAt: string;
+  };
+  error?: string;
+};
+
 const publicSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, "") || "";
 const workerGatewayUrl = publicSupabaseUrl ? `${publicSupabaseUrl}/functions/v1/nexus-worker-gateway` : "";
+const pairingEnabled = process.env.NEXT_PUBLIC_NEXUS_WORKER_PAIRING_V1 === "1" && Boolean(workerGatewayUrl);
 
 export function NexusWorkerEnrollment() {
   const [name, setName] = useState("Meu Nexus Worker");
   const [platform, setPlatform] = useState<Platform>("windows");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [workerId, setWorkerId] = useState("");
-  const [token, setToken] = useState("");
-  const [copied, setCopied] = useState<"token" | "command" | "">("");
+  const [referenceId, setReferenceId] = useState("");
+  const [secret, setSecret] = useState("");
+  const [secretKind, setSecretKind] = useState<SecretKind>("");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [copied, setCopied] = useState<"secret" | "command" | "">("");
 
   const baseUrl = typeof window === "undefined" ? "https://seu-nexus.vercel.app" : window.location.origin;
 
   const command = useMemo(() => {
-    if (!token) return "";
-    const transport = workerGatewayUrl
-      ? workerGatewayUrl
-      : baseUrl;
+    if (!secret) return "";
+    const transport = workerGatewayUrl || baseUrl;
 
     if (platform === "windows") {
       return `& .\\install.ps1 -GatewayUrl \"${transport}\" -Start`;
     }
     return `bash ./install.sh --gateway '${transport}' --start`;
-  }, [baseUrl, platform, token]);
+  }, [baseUrl, platform, secret]);
 
   async function enroll(event: FormEvent) {
     event.preventDefault();
     if (loading || name.trim().length < 2) return;
     setLoading(true);
     setError("");
-    setToken("");
-    setWorkerId("");
+    setSecret("");
+    setSecretKind("");
+    setReferenceId("");
+    setExpiresAt("");
     setCopied("");
+
     try {
+      if (pairingEnabled) {
+        const response = await fetch("/api/nexus/workers/pairings", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name: name.trim(), platform }),
+        });
+        const data = await response.json() as PairingResponse;
+        if (!response.ok || !data.pairing?.code) {
+          setError(data.error || "Não foi possível criar o pareamento.");
+          return;
+        }
+        setReferenceId(data.pairing.id);
+        setSecret(data.pairing.code);
+        setSecretKind("pairing");
+        setExpiresAt(data.pairing.expiresAt);
+        return;
+      }
+
       const response = await fetch("/api/nexus/workers/enroll", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -65,8 +98,9 @@ export function NexusWorkerEnrollment() {
         setError(data.error || "Não foi possível registrar o worker.");
         return;
       }
-      setWorkerId(data.worker.id);
-      setToken(data.credential.token);
+      setReferenceId(data.worker.id);
+      setSecret(data.credential.token);
+      setSecretKind("token");
     } catch {
       setError("Não foi possível conectar ao Worker Enrollment.");
     } finally {
@@ -74,7 +108,7 @@ export function NexusWorkerEnrollment() {
     }
   }
 
-  async function copy(value: string, type: "token" | "command") {
+  async function copy(value: string, type: "secret" | "command") {
     try {
       await navigator.clipboard.writeText(value);
       setCopied(type);
@@ -108,32 +142,40 @@ export function NexusWorkerEnrollment() {
             <option value="macos">macOS</option>
           </select>
         </label>
-        <button type="submit" disabled={loading || name.trim().length < 2}>{loading ? "REGISTRANDO..." : "GERAR CREDENCIAL"}</button>
+        <button type="submit" disabled={loading || name.trim().length < 2}>
+          {loading ? "REGISTRANDO..." : pairingEnabled ? "GERAR CÓDIGO DE PAREAMENTO" : "GERAR CREDENCIAL"}
+        </button>
       </form>
 
       {error && <div className={styles.error}>{error}</div>}
 
-      {token && (
+      {secret && (
         <div className={styles.credential}>
           <div className={styles.warning}>
-            <strong>Mostrado uma única vez</strong>
-            <span>O servidor guarda somente o SHA-256 desta credencial. Copie agora e não envie o token em chats, issues ou commits.</span>
+            <strong>{secretKind === "pairing" ? "Código temporário • uso único" : "Mostrado uma única vez"}</strong>
+            <span>
+              {secretKind === "pairing"
+                ? `O banco guarda somente o SHA-256 deste código. Ele expira em até 10 minutos${expiresAt ? ` (${new Date(expiresAt).toLocaleTimeString()})` : ""} e é invalidado após a primeira troca.`
+                : "O servidor guarda somente o SHA-256 desta credencial. Copie agora e não envie o token em chats, issues ou commits."}
+            </span>
           </div>
 
           <div className={styles.secretRow}>
-            <code>{token}</code>
-            <button type="button" onClick={() => copy(token, "token")}>{copied === "token" ? "COPIADO" : "COPIAR TOKEN"}</button>
+            <code>{secret}</code>
+            <button type="button" onClick={() => copy(secret, "secret")}>{copied === "secret" ? "COPIADO" : secretKind === "pairing" ? "COPIAR CÓDIGO" : "COPIAR TOKEN"}</button>
           </div>
 
           <div className={styles.commandBlock}>
-            <div><span>Worker ID</span><code>{workerId}</code></div>
-            <p>Extraia o pacote verificado do Nexus Worker, abra o terminal nessa pasta e execute o instalador abaixo. Ele verifica a integridade, salva somente o endpoint do gateway, pede o token sem incluí-lo no histórico, roda o Nexus Doctor e inicia o worker.</p>
+            <div><span>{secretKind === "pairing" ? "Pairing ID" : "Worker ID"}</span><code>{referenceId}</code></div>
+            <p>
+              Extraia o pacote verificado do Nexus Worker, abra o terminal nessa pasta e execute o instalador abaixo. Ele verifica a integridade, salva somente o endpoint do gateway e pede {secretKind === "pairing" ? "o código temporário" : "o token"} sem incluí-lo no histórico.
+            </p>
             <pre>{command}</pre>
             <button type="button" onClick={() => copy(command, "command")}>{copied === "command" ? "INSTALAÇÃO COPIADA" : "COPIAR INSTALAÇÃO"}</button>
           </div>
 
           <div className={styles.flow}>
-            <span>VERIFY</span><b>→</b><span>INSTALL</span><b>→</b><span>DOCTOR</span><b>→</b><span>HEARTBEAT</span><b>→</b><span>CLAIM</span><b>→</b><span>RESULT</span><b>→</b><span>AUDIT</span>
+            <span>VERIFY</span><b>→</b><span>INSTALL</span><b>→</b>{secretKind === "pairing" && <><span>PAIR</span><b>→</b></>}<span>DOCTOR</span><b>→</b><span>HEARTBEAT</span><b>→</b><span>CLAIM</span><b>→</b><span>RESULT</span><b>→</b><span>AUDIT</span>
           </div>
         </div>
       )}
