@@ -10,7 +10,8 @@
     "probe": "prove.mjs",
     "windows": "prove.ps1",
     "linux": "prove.sh",
-    "macos": "prove.sh"
+    "macos": "prove.sh",
+    "status": "release-candidate"
   },
   "launchers": {
     "windows": "start.ps1",
