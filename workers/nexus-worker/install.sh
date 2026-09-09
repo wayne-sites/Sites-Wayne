@@ -35,14 +35,15 @@ if [[ -z "$GATEWAY_URL" ]]; then
   read -r -p "Gateway HTTPS do Nexus Worker: " GATEWAY_URL
 fi
 
-NEXUS_INSTALL_GATEWAY="$GATEWAY_URL" node <<'NODE'
+gateway_status=0
+NEXUS_INSTALL_GATEWAY="$GATEWAY_URL" node <<'NODE' || gateway_status=$?
 const raw = process.env.NEXUS_INSTALL_GATEWAY || "";
 let url;
 try { url = new URL(raw.trim()); } catch { process.exit(2); }
 const local = url.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
 if (url.protocol !== "https:" && !local) process.exit(3);
 NODE
-case "$?" in
+case "$gateway_status" in
   0) ;;
   2) echo "NEXUS_GATEWAY_URL_invalid" >&2; exit 2 ;;
   *) echo "NEXUS_GATEWAY_URL_must_use_https" >&2; exit 2 ;;
