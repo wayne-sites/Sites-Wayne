@@ -1,10 +1,11 @@
 {
   "name": "nexus-worker",
-  "version": "0.2.0-preview",
+  "version": "0.3.0-preview",
   "protocolVersion": "1",
   "minimumNode": "22.13.0",
   "entry": "index.mjs",
   "doctor": "doctor.mjs",
+  "pairing": "pair.mjs",
   "launchers": {
     "windows": "start.ps1",
     "linux": "start.sh",
@@ -21,6 +22,7 @@
     "index.mjs",
     "install.ps1",
     "install.sh",
+    "pair.mjs",
     "runtime.mjs",
     "start.ps1",
     "start.sh",
@@ -47,6 +49,9 @@
     "remotePlainHttp": false,
     "tokenStoredByLauncher": false,
     "tokenStoredByInstaller": false,
+    "pairingCodeStoredByLauncher": false,
+    "pairingCodeSingleUse": true,
+    "pairingMaxTtlSeconds": 600,
     "autostart": false,
     "gatewayStoredLocally": true
   }
