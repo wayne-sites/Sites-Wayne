@@ -1,4 +1,5 @@
 import os from "node:os";
+import { pathToFileURL } from "node:url";
 import { WORKER_CAPABILITIES, WORKER_TOOLS, executeWorkerCapability } from "./runtime.mjs";
 
 const TOKEN_PATTERN = /^nxw1_[A-Za-z0-9_-]{43}$/;
@@ -91,7 +92,8 @@ function main() {
   console.log("[NEXUS DOCTOR] credencial presente e formato válido; valor não exibido.");
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll("\\", "/")}`) {
+const invokedDirectly = Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (invokedDirectly) {
   try {
     main();
   } catch (error) {
