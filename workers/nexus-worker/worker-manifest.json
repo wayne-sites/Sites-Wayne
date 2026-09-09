@@ -1,11 +1,17 @@
 {
   "name": "nexus-worker",
-  "version": "0.3.0-preview",
+  "version": "0.3.1-preview",
   "protocolVersion": "1",
   "minimumNode": "22.13.0",
   "entry": "index.mjs",
   "doctor": "doctor.mjs",
   "pairing": "pair.mjs",
+  "proof": {
+    "probe": "prove.mjs",
+    "windows": "prove.ps1",
+    "linux": "prove.sh",
+    "macos": "prove.sh"
+  },
   "launchers": {
     "windows": "start.ps1",
     "linux": "start.sh",
@@ -23,6 +29,9 @@
     "install.ps1",
     "install.sh",
     "pair.mjs",
+    "prove.mjs",
+    "prove.ps1",
+    "prove.sh",
     "runtime.mjs",
     "start.ps1",
     "start.sh",
@@ -52,6 +61,8 @@
     "pairingCodeStoredByLauncher": false,
     "pairingCodeSingleUse": true,
     "pairingMaxTtlSeconds": 600,
+    "proofCredentialRedacted": true,
+    "proofClaimsJobsByDefault": false,
     "autostart": false,
     "gatewayStoredLocally": true
   }
