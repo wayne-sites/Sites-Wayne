@@ -50,6 +50,18 @@ test("gateway processa pair antes de exigir bearer token", async () => {
   assert.match(source, /nexus_redeem_worker_pairing/);
 });
 
+test("pairing fica automatico apenas em Preview e Production continua por flag", async () => {
+  const [route, page, component] = await Promise.all([
+    readFile(new URL("../app/api/nexus/workers/pairings/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/nexus-worker-enrollment.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(route, /NEXUS_WORKER_PAIRING_V1 === "1" \|\| process\.env\.VERCEL_ENV === "preview"/);
+  assert.match(page, /NEXUS_WORKER_PAIRING_V1 === "1" \|\| process\.env\.VERCEL_ENV === "preview"/);
+  assert.doesNotMatch(component, /NEXT_PUBLIC_NEXUS_WORKER_PAIRING_V1/);
+  assert.match(component, /pairingEnabled: boolean/);
+});
+
 test("launchers aceitam pairing sem persistir codigo", async () => {
   const [shell, powershell, manifest] = await Promise.all([
     readFile(new URL("../workers/nexus-worker/start.sh", import.meta.url), "utf8"),
