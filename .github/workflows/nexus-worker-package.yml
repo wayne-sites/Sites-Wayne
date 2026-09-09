@@ -1,0 +1,62 @@
+name: Nexus Worker Package
+
+on:
+  pull_request:
+    paths:
+      - "workers/nexus-worker/**"
+      - "tests/nexus-worker-package.test.mjs"
+      - ".github/workflows/nexus-worker-package.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexus-worker-package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+      - name: Validate package contract
+        run: node --test tests/nexus-worker-package.test.mjs
+      - name: Assemble worker bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/nexus-worker
+          cp workers/nexus-worker/README.md dist/nexus-worker/
+          cp workers/nexus-worker/doctor.mjs dist/nexus-worker/
+          cp workers/nexus-worker/index.mjs dist/nexus-worker/
+          cp workers/nexus-worker/runtime.mjs dist/nexus-worker/
+          cp workers/nexus-worker/start.ps1 dist/nexus-worker/
+          cp workers/nexus-worker/start.sh dist/nexus-worker/
+          cp workers/nexus-worker/verify.mjs dist/nexus-worker/
+          cp workers/nexus-worker/worker-manifest.json dist/nexus-worker/
+          chmod +x dist/nexus-worker/start.sh
+          node dist/nexus-worker/verify.mjs --write-checksums
+          node dist/nexus-worker/verify.mjs
+      - name: Create archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${GITHUB_SHA::12}"
+          tar -czf "dist/nexus-worker-${SHORT_SHA}.tar.gz" -C dist nexus-worker
+          (cd dist && zip -qr "nexus-worker-${SHORT_SHA}.zip" nexus-worker)
+          sha256sum "dist/nexus-worker-${SHORT_SHA}.tar.gz" "dist/nexus-worker-${SHORT_SHA}.zip" > dist/ARCHIVE-SHA256SUMS
+      - name: Upload verified worker package
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-worker-${{ github.sha }}
+          path: |
+            dist/nexus-worker-*.tar.gz
+            dist/nexus-worker-*.zip
+            dist/ARCHIVE-SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14

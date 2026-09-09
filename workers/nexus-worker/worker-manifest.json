@@ -1,0 +1,43 @@
+{
+  "name": "nexus-worker",
+  "version": "0.1.0-preview",
+  "protocolVersion": "1",
+  "minimumNode": "22.13.0",
+  "entry": "index.mjs",
+  "doctor": "doctor.mjs",
+  "launchers": {
+    "windows": "start.ps1",
+    "linux": "start.sh",
+    "macos": "start.sh"
+  },
+  "files": [
+    "README.md",
+    "doctor.mjs",
+    "index.mjs",
+    "runtime.mjs",
+    "start.ps1",
+    "start.sh",
+    "verify.mjs",
+    "worker-manifest.json"
+  ],
+  "tools": [
+    "nexus-json",
+    "nexus-markdown"
+  ],
+  "capabilities": [
+    "data.json.validate",
+    "data.json.format",
+    "document.markdown.normalize",
+    "document.markdown.inspect"
+  ],
+  "security": {
+    "zeroCostOnly": true,
+    "shellExec": false,
+    "childProcess": false,
+    "eval": false,
+    "docker": false,
+    "browserAutomation": false,
+    "remotePlainHttp": false,
+    "tokenStoredByLauncher": false
+  }
+}
