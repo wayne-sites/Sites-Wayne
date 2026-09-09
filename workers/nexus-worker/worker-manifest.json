@@ -11,7 +11,8 @@
     "windows": "prove.ps1",
     "linux": "prove.sh",
     "macos": "prove.sh",
-    "status": "release-candidate"
+    "status": "release-candidate",
+    "claimsJobsByDefault": false
   },
   "launchers": {
     "windows": "start.ps1",
