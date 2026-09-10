@@ -5,6 +5,7 @@ import styles from "./nexus-worker-presence.module.css";
 
 type WorkerStatus = "offline" | "online" | "disabled" | "error";
 type WorkerPlatform = "windows" | "linux" | "macos" | "docker" | "vm" | "other";
+type PhysicalProofState = "active" | "historical";
 
 type WorkerPresence = {
   id: string;
@@ -15,6 +16,10 @@ type WorkerPresence = {
   secondsSinceSeen: number | null;
   tools: string[];
   capabilities: string[];
+  physicalProof: {
+    id: string;
+    state: PhysicalProofState;
+  } | null;
   createdAt: string;
 };
 
@@ -34,6 +39,10 @@ function heartbeatLabel(worker: WorkerPresence) {
   if (seconds < 3600) return `heartbeat há ${Math.floor(seconds / 60)}min`;
   if (seconds < 86_400) return `heartbeat há ${Math.floor(seconds / 3600)}h`;
   return `heartbeat em ${new Date(worker.lastSeenAt).toLocaleString()}`;
+}
+
+function physicalProofLabel(state: PhysicalProofState) {
+  return state === "active" ? "PROVA FÍSICA ATIVA" : "PROVA FÍSICA ANTERIOR";
 }
 
 export function NexusWorkerPresence() {
@@ -69,6 +78,7 @@ export function NexusWorkerPresence() {
   }, [refresh]);
 
   const online = workers.filter((worker) => worker.status === "online").length;
+  const activeProofs = workers.filter((worker) => worker.physicalProof?.state === "active").length;
 
   return (
     <section className={styles.panel} aria-live="polite">
@@ -76,11 +86,12 @@ export function NexusWorkerPresence() {
         <div>
           <span>WORKER PRESENCE</span>
           <h2>Nós conectados</h2>
-          <p>ONLINE exige heartbeat com no máximo 2 minutos. O status é recalculado em cada leitura, sem depender do cron diário.</p>
+          <p>ONLINE exige heartbeat com no máximo 2 minutos. A prova física só fica ativa quando o backend observa um heartbeat recente com um identificador de sessão verificável.</p>
         </div>
         <div className={styles.summary}>
           <strong>{online}</strong>
           <span>online / {workers.length} registrados</span>
+          <span>{activeProofs} prova(s) física(s) ativa(s)</span>
           <button type="button" onClick={() => void refresh()} disabled={loading}>{loading ? "ATUALIZANDO..." : "ATUALIZAR"}</button>
         </div>
       </div>
@@ -107,6 +118,12 @@ export function NexusWorkerPresence() {
                 <span className={styles.status} data-status={worker.status}>{statusLabel(worker.status)}</span>
               </div>
               <p>{heartbeatLabel(worker)}</p>
+              {worker.physicalProof && (
+                <div className={styles.proof} data-proof={worker.physicalProof.state}>
+                  <strong>{physicalProofLabel(worker.physicalProof.state)}</strong>
+                  <code>proof:{worker.physicalProof.id.slice(0, 8)}</code>
+                </div>
+              )}
               <div className={styles.meta}>
                 <span>{worker.tools.length ? worker.tools.join(" • ") : "sem tools anunciadas"}</span>
                 <span>{worker.capabilities.length} capabilities</span>
