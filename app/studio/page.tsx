@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ModuleShell } from "@/components/module-shell";
 import { NexusStudioHome } from "@/components/nexus-studio-home";
+import { NexusWorkerPresence } from "@/components/nexus-worker-presence";
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { listNexusProjectsForUser, type NexusProject } from "@/lib/server/nexus-core-store";
 
@@ -37,6 +38,7 @@ export default async function NexusStudioPage() {
       action={<Link className="primary-button" href="/builder">ABRIR BUILDER <span>→</span></Link>}
     >
       <NexusStudioHome initialProjects={projects} coreReady={coreReady} pairingEnabled={pairingEnabled} />
+      <NexusWorkerPresence />
     </ModuleShell>
   );
 }
