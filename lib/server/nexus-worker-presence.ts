@@ -4,6 +4,7 @@ import { fetchSafeGet } from "@/lib/server/http";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/server/supabase-env";
 
 export type NexusWorkerEffectiveStatus = "offline" | "online" | "disabled" | "error";
+export type NexusWorkerPhysicalProofState = "active" | "historical";
 
 export type NexusWorkerPresenceSummary = {
   id: string;
@@ -14,6 +15,10 @@ export type NexusWorkerPresenceSummary = {
   secondsSinceSeen: number | null;
   tools: string[];
   capabilities: string[];
+  physicalProof: {
+    id: string;
+    state: NexusWorkerPhysicalProofState;
+  } | null;
   createdAt: string;
 };
 
@@ -28,6 +33,8 @@ type StoredWorkerRow = {
 };
 
 type WorkspaceRow = { id: string };
+
+const PHYSICAL_PROOF_MARKER = /\s*\[proof:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]\s*$/i;
 
 function config() {
   const url = getSupabaseUrl();
@@ -45,6 +52,16 @@ function stringArray(value: unknown) {
   return value.filter((item): item is string => typeof item === "string").slice(0, 100);
 }
 
+function parsePhysicalProof(name: string) {
+  const match = name.match(PHYSICAL_PROOF_MARKER);
+  if (!match) return { displayName: name, proofId: null };
+  const displayName = name.replace(PHYSICAL_PROOF_MARKER, "").trim();
+  return {
+    displayName: displayName || "Nexus Worker",
+    proofId: match[1].toLowerCase(),
+  };
+}
+
 function summarizeWorker(row: StoredWorkerRow, referenceMs: number, staleAfterMs: number): NexusWorkerPresenceSummary {
   const lastSeenMs = row.last_seen_at ? Date.parse(row.last_seen_at) : Number.NaN;
   const ageMs = Number.isFinite(lastSeenMs) ? Math.max(0, referenceMs - lastSeenMs) : null;
@@ -53,16 +70,21 @@ function summarizeWorker(row: StoredWorkerRow, referenceMs: number, staleAfterMs
     ? row.status
     : fresh ? "online" : "offline";
   const advertised = row.capabilities && typeof row.capabilities === "object" ? row.capabilities : {};
+  const { displayName, proofId } = parsePhysicalProof(row.name);
 
   return {
     id: row.id,
-    name: row.name,
+    name: displayName,
     platform: row.platform,
     status,
     lastSeenAt: row.last_seen_at,
     secondsSinceSeen: ageMs === null ? null : Math.floor(ageMs / 1000),
     tools: stringArray(advertised.tools),
     capabilities: stringArray(advertised.capabilities),
+    physicalProof: proofId ? {
+      id: proofId,
+      state: status === "online" ? "active" : "historical",
+    } : null,
     createdAt: row.created_at,
   };
 }
