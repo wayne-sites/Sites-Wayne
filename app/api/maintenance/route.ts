@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { expireMarketplaceOrders, listPublishedWayneSites, updateWayneOrder } from "@/lib/supabase-admin";
 import { listDueCrmFollowups } from "@/lib/server/crm-store";
 import { expireCrmProposals } from "@/lib/server/crm-proposals";
+import { reconcileStaleNexusWorkers } from "@/lib/server/nexus-worker-store";
 import { fetchWithTimeout, requestId, secureCompare } from "@/lib/server/http";
 import { log } from "@/lib/server/logger";
 
@@ -15,9 +16,10 @@ export async function GET(request: NextRequest) {
     const sites = await listPublishedWayneSites(100);
     const checkedAt = new Date().toISOString();
     const referenceAt = new Date(checkedAt);
-    const [dueCrmFollowups, expiredCrmProposals] = await Promise.all([
+    const [dueCrmFollowups, expiredCrmProposals, staleNexusWorkers] = await Promise.all([
       listDueCrmFollowups(referenceAt, 100).catch(() => null),
       expireCrmProposals(referenceAt).catch(() => null),
+      reconcileStaleNexusWorkers(referenceAt).catch(() => null),
     ]);
     if (dueCrmFollowups?.length) {
       log("warn", "crm-followup", "followups_due", {
@@ -27,6 +29,12 @@ export async function GET(request: NextRequest) {
       });
     }
     if (expiredCrmProposals?.length) log("info", "crm-proposals", "proposals_expired", { requestId: id, count: expiredCrmProposals.length });
+    if (staleNexusWorkers?.length) {
+      log("info", "nexus-worker", "stale_workers_marked_offline", {
+        requestId: id,
+        count: staleNexusWorkers.length,
+      });
+    }
 
     const results = await Promise.all(sites.map(async (site) => {
       let status = "offline";
@@ -47,6 +55,7 @@ export async function GET(request: NextRequest) {
         oldestDueAt: dueCrmFollowups[0]?.due_at || null,
       },
       crmProposals: expiredCrmProposals === null ? null : { expired: expiredCrmProposals.length },
+      nexusWorkers: staleNexusWorkers === null ? null : { markedOffline: staleNexusWorkers.length },
       requestId: id,
     }, { headers: { "cache-control": "no-store" } });
   } catch (error) {

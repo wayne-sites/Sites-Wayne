@@ -70,6 +70,14 @@ export type NexusWorkerJobStatus = {
   updated_at: string;
 };
 
+export type NexusWorkerPresenceReconciliation = {
+  id: string;
+  name: string;
+  platform: NexusWorkerPlatform;
+  status: "offline";
+  last_seen_at: string | null;
+};
+
 function config() {
   const url = getSupabaseUrl();
   const key = getSupabaseSecretKey();
@@ -175,6 +183,26 @@ export async function listNexusWorkerJobsForUser(userId: string, limit = 20) {
   );
   if (!response.ok) throw new Error(`nexus_worker_jobs_${response.status}`);
   return await response.json() as NexusWorkerJobStatus[];
+}
+
+export async function reconcileStaleNexusWorkers(referenceAt = new Date(), staleAfterMs = 120_000) {
+  if (!Number.isFinite(referenceAt.getTime())) throw new Error("nexus_worker_presence_reference_invalid");
+  const safeStaleAfterMs = Math.max(60_000, Math.min(Math.trunc(staleAfterMs), 15 * 60_000));
+  const referenceIso = referenceAt.toISOString();
+  const cutoff = new Date(referenceAt.getTime() - safeStaleAfterMs).toISOString();
+  const { url, key } = config();
+  const select = "id,name,platform,status,last_seen_at";
+  const response = await fetchWithTimeout(
+    `${url}/rest/v1/nexus_workers?status=eq.online&last_seen_at=lt.${encodeURIComponent(cutoff)}&select=${select}`,
+    {
+      method: "PATCH",
+      cache: "no-store",
+      headers: { ...headers(key), prefer: "return=representation" },
+      body: JSON.stringify({ status: "offline", updated_at: referenceIso }),
+    },
+  );
+  if (!response.ok) throw new Error(`nexus_worker_presence_${response.status}`);
+  return await response.json() as NexusWorkerPresenceReconciliation[];
 }
 
 export function claimNexusWorkerJob(tokenHash: string) {
