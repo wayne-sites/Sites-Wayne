@@ -115,6 +115,38 @@
 .status[data-status="disabled"] { opacity: .48; }
 .status[data-status="offline"] { opacity: .62; }
 
+.proof {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px;
+  background: rgba(255,255,255,.035);
+  font-size: 10px;
+  letter-spacing: .05em;
+}
+
+.proof[data-proof="active"] {
+  border-color: rgba(90,230,160,.26);
+  background: rgba(40,150,90,.1);
+}
+
+.proof[data-proof="historical"] {
+  opacity: .62;
+}
+
+.proof strong {
+  font-size: 9px;
+  letter-spacing: .09em;
+}
+
+.proof code {
+  opacity: .68;
+}
+
 .meta {
   display: flex;
   flex-wrap: wrap;
