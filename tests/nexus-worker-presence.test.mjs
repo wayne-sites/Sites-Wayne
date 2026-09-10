@@ -35,6 +35,17 @@ test("private presence read is owner-scoped and computes effective freshness", a
   assert.doesNotMatch(source, /token_hash|credential|nxw1_|nxp1_/i);
 });
 
+test("presence derives a sanitized physical proof gate from the backend marker", async () => {
+  const source = await readFile(presenceUrl, "utf8");
+  assert.match(source, /PHYSICAL_PROOF_MARKER/);
+  assert.match(source, /\[proof:/);
+  assert.match(source, /displayName: displayName \|\| "Nexus Worker"/);
+  assert.match(source, /physicalProof: proofId \? \{/);
+  assert.match(source, /state: status === "online" \? "active" : "historical"/);
+  assert.match(source, /proofId: match\[1\]\.toLowerCase\(\)/);
+  assert.doesNotMatch(source, /token_hash|credential|nxw1_|nxp1_/i);
+});
+
 test("worker presence endpoint requires auth and returns no-store", async () => {
   const source = await readFile(routeUrl, "utf8");
   assert.match(source, /const user = await getCurrentUser\(\)/);
@@ -43,10 +54,14 @@ test("worker presence endpoint requires auth and returns no-store", async () => 
   assert.match(source, /"cache-control": "no-store"/);
 });
 
-test("Studio polls effective worker presence every 30 seconds", async () => {
+test("Studio polls effective worker presence every 30 seconds and exposes proof state", async () => {
   const source = await readFile(componentUrl, "utf8");
   assert.match(source, /fetch\("\/api\/nexus\/workers", \{ method: "GET", cache: "no-store" \}\)/);
   assert.match(source, /setInterval\(\(\) => void refresh\(true\), 30_000\)/);
-  assert.match(source, /ONLINE exige heartbeat com no máximo 2 minutos/);
+  assert.match(source, /A prova física só fica ativa quando o backend observa um heartbeat recente/);
+  assert.match(source, /physicalProof\?\.state === "active"/);
+  assert.match(source, /PROVA FÍSICA ATIVA/);
+  assert.match(source, /PROVA FÍSICA ANTERIOR/);
+  assert.match(source, /physicalProof\.id\.slice\(0, 8\)/);
   assert.doesNotMatch(source, /credential|token_hash|nxw1_|nxp1_/i);
 });
