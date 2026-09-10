@@ -29,6 +29,7 @@ type StoredWorkerRow = {
   status: NexusWorkerEffectiveStatus;
   last_seen_at: string | null;
   capabilities: Record<string, unknown> | null;
+  reported_name?: unknown;
   created_at: string;
 };
 
@@ -70,7 +71,9 @@ function summarizeWorker(row: StoredWorkerRow, referenceMs: number, staleAfterMs
     ? row.status
     : fresh ? "online" : "offline";
   const advertised = row.capabilities && typeof row.capabilities === "object" ? row.capabilities : {};
-  const { displayName, proofId } = parsePhysicalProof(row.name);
+  // Enrollment names are owner-editable labels, not heartbeat evidence.
+  const { displayName } = parsePhysicalProof(row.name);
+  const { proofId } = parsePhysicalProof(typeof row.reported_name === "string" ? row.reported_name : "");
 
   return {
     id: row.id,
@@ -109,7 +112,7 @@ export async function listNexusWorkersForUser(
   const workspaceIds = workspaces.map((workspace) => workspace.id).filter(Boolean);
   if (!workspaceIds.length) return [];
 
-  const select = "id,name,platform,status,last_seen_at,capabilities,created_at";
+  const select = "id,name,platform,status,last_seen_at,capabilities,created_at,reported_name:runtime_info->>reported_name";
   const workersResponse = await fetchSafeGet(
     `${url}/rest/v1/nexus_workers?workspace_id=in.(${workspaceIds.join(",")})&select=${select}&order=created_at.desc&limit=${safeLimit}`,
     { cache: "no-store", headers: headers(key) },
