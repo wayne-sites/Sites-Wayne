@@ -46,9 +46,9 @@ export default function OpenGraphImage() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", maxWidth: 940 }}>
-          <div style={{ fontSize: 76, lineHeight: 1.02, fontWeight: 900, letterSpacing: -3.5 }}>
-            Tudo que move você,
-            <span style={{ color: "#77d6ff" }}> conectado.</span>
+          <div style={{ display: "flex", flexDirection: "column", fontSize: 76, lineHeight: 1.02, fontWeight: 900, letterSpacing: -3.5 }}>
+            <span>Tudo que move você,</span>
+            <span style={{ color: "#77d6ff" }}>conectado.</span>
           </div>
           <div style={{ marginTop: 28, fontSize: 30, lineHeight: 1.35, color: "#c9d7ea" }}>
             Descobrir, criar, aprender, vender e crescer em um único ecossistema digital brasileiro.
