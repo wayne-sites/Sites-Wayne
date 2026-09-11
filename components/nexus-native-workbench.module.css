@@ -1,0 +1,16 @@
+.panel { margin-top: 24px; padding: 24px; border: 1px solid rgba(255,255,255,.14); border-radius: 18px; background: #0b1420; color: #edf4ff; }
+.panel h2 { margin: 0 0 8px; font-size: 1.5rem; }
+.panel p { font-size: 1rem; line-height: 1.6; overflow-wrap: anywhere; }
+.fields { border: 0; padding: 0; margin: 20px 0 0; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; min-width: 0; }
+.legend { margin-bottom: 12px; font-size: 1rem; }
+.fields label { display: grid; gap: 8px; font-size: 1rem; min-width: 0; }
+.full { grid-column: 1 / -1; }
+.fields select, .fields textarea, .fields input { width: 100%; min-width: 0; background: #101d2e; color: #edf4ff; border: 1px solid #52657e; border-radius: 8px; padding: 12px; font: inherit; }
+.fields textarea { min-height: 180px; resize: vertical; font: 1rem/1.5 monospace; }
+.panel button { border: 1px solid #83caff; border-radius: 8px; background: #b5e1ff; color: #0a1723; padding: 12px 18px; cursor: pointer; font-size: 1rem; font-weight: 700; justify-self: start; }
+.panel button:disabled, .fields:disabled { opacity: .6; }
+.panel :focus-visible { outline: 3px solid #ffdf85; outline-offset: 3px; }
+.error { padding: 12px; border: 1px solid #ffa89e; color: #ffc4bb; border-radius: 8px; }
+.result { border-top: 1px solid #52657e; margin-top: 20px; padding-top: 12px; min-width: 0; }
+.result pre { max-height: 420px; overflow: auto; padding: 16px; background: #050c15; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .95rem; }
+@media (max-width: 640px) { .panel { padding: 16px; } .fields { grid-template-columns: minmax(0,1fr); } }

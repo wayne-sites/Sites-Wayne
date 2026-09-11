@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { NexusWorkerEnrollment } from "./nexus-worker-enrollment";
 import { NexusWorkerJobRunner } from "./nexus-worker-job-runner";
+import { NexusNativeWorkbench } from "./nexus-native-workbench";
 import styles from "./nexus-studio-home.module.css";
 
 type ProjectType =
@@ -167,6 +168,7 @@ export function NexusStudioHome({
         )}
       </section>
 
+      <NexusNativeWorkbench projects={projects.map(({ id, name }) => ({ id, name }))} />
       <NexusWorkerJobRunner projects={projects.map(({ id, name }) => ({ id, name }))} />
       <NexusWorkerEnrollment pairingEnabled={pairingEnabled} />
     </div>
