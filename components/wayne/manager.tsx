@@ -12,7 +12,7 @@ import {
   type VaultEntry,
 } from "@/lib/wayne/types";
 import { configLua } from "@/lib/wayne/configs";
-import { loadManager, action, runtimeMode } from "@/lib/wayne/client";
+import { loadManager, action, runtimeMode, WayneRequestError } from "@/lib/wayne/client";
 import { prompts } from "@/lib/wayne/marketing";
 import { listenLocal, speakLocal } from "@/lib/wayne/voice";
 import { Button } from "./ui/button";
@@ -44,17 +44,47 @@ function useData() {
     vault: VaultEntry[];
   } | null>(null);
   const [error, setError] = useState("");
+  const [authRequired, setAuthRequired] = useState(false);
+  const [loading, setLoading] = useState(true);
   const refresh = () =>
-    loadManager()
+    Promise.resolve().then(() => {
+      setLoading(true);
+      return loadManager();
+    })
       .then((value) => {
         setData(value);
         setError("");
+        setAuthRequired(false);
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => {
+        setData(null);
+        setError(e instanceof Error ? e.message : "Não foi possível carregar o painel.");
+        setAuthRequired(e instanceof WayneRequestError && e.status === 401);
+      })
+      .finally(() => setLoading(false));
   useEffect(() => {
     void refresh();
   }, []);
-  return { data, error, refresh };
+  return { data, error, refresh, authRequired, loading };
+}
+function LoadFailure({ error, authRequired, loading, refresh }: {
+  error: string;
+  authRequired: boolean;
+  loading: boolean;
+  refresh: () => Promise<unknown>;
+}) {
+  return (
+    <section className="panel" aria-busy={loading}>
+      <Message text={error} />
+      {authRequired ? (
+        <a className="button outline" href="/entrar?next=/studio/wayne">Entrar novamente</a>
+      ) : (
+        <Button variant="outline" disabled={loading} onClick={() => void refresh()}>
+          {loading ? "Carregando…" : "Tentar novamente"}
+        </Button>
+      )}
+    </section>
+  );
 }
 async function copy(text: string) {
   await navigator.clipboard.writeText(text);
@@ -306,7 +336,7 @@ export function CodeGenerator() {
   );
 }
 export function Dashboard() {
-  const { data, error } = useData();
+  const { data, error, refresh, authRequired, loading } = useData();
   const s = data?.state;
   const measured = s?.games.filter((g) => g.robuxTotal !== null) || [];
   const sum = (key: "visitas" | "robuxTotal") =>
@@ -329,6 +359,13 @@ export function Dashboard() {
     };
   });
   const max = Math.max(1, ...days.map((d) => d.value ?? 0));
+  if (!data) return (
+    <Shell active="/studio/wayne">
+      <Heading tag="SEUS JOGOS" title="Visão geral" description="Acompanhe seus jogos e as métricas registradas." />
+      {error ? <LoadFailure {...{ error, refresh, authRequired, loading }} />
+        : <p role="status" className="empty">Carregando seus jogos…</p>}
+    </Shell>
+  );
   return (
     <Shell active="/studio/wayne">
       <Heading
@@ -688,13 +725,12 @@ function GameWorkspace({
   );
 }
 export function GameDetail() {
-  const { data, error, refresh } = useData();
+  const { data, error, refresh, authRequired, loading } = useData();
   const id = useSearchParams()?.get("id") || "";
   const game = data?.state.games.find((g) => g.id === id);
   return (
     <Shell active="/studio/wayne">
-      <Message text={error} />
-      {game && data ? (
+      {error ? <LoadFailure {...{ error, refresh, authRequired, loading }} /> : game && data ? (
         <GameWorkspace
           key={game.id}
           game={game}
@@ -712,7 +748,7 @@ export function GameDetail() {
   );
 }
 export function JarvisOS() {
-  const { data, error, refresh } = useData();
+  const { data, error, refresh, authRequired, loading } = useData();
   const [command, setCommand] = useState("gerar RNG Brainrot");
   const [result, setResult] = useState("JARVIS pronto. Aguardando comando.");
   const [busy, setBusy] = useState(false);
@@ -735,7 +771,7 @@ export function JarvisOS() {
   return (
     <Shell active="/studio/wayne/JarvisOS">
       <div className="jarvis-screen">
-        <Message text={error} />
+        {error && <LoadFailure {...{ error, refresh, authRequired, loading }} />}
         <Heading
           tag="ASSISTENTE"
           title="Wayne Jarvis OS"
@@ -849,7 +885,7 @@ export function JarvisOS() {
           Estes horários são sugestões. As rotinas ainda não estão agendadas
           no Nexus.
         </p>
-        <VaultView entries={data?.vault || []} />
+        {data ? <VaultView entries={data.vault} /> : !error && <p role="status">Carregando o Vault…</p>}
       </div>
     </Shell>
   );

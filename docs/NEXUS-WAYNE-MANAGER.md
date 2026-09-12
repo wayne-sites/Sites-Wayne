@@ -25,7 +25,13 @@ RLS habilitado; leitura limitada ao proprietário; clientes não podem gravar di
 - `scripts/verify-wayne-sql.mjs` valida no PGlite: geração atômica, versões, rejeição de revisão antiga, rollback, isolamento entre donos e bloqueio de anon/browser. Executar com `PGLITE_MODULE_PATH` apontando para uma instalação de `@electric-sql/pglite`.
 - Banco remoto: RPC executada como service_role em transação de teste, com Vault e arquivos Luau verificados e rollback integral. RLS e permissões confirmados.
 - Não executado: Roblox Studio, voz em hardware real, APIs de provedores, sincronização automática do Vault local, ingestão de players/logs Roblox, compras de Gamepass e publicação de jogos.
-- Verificação visual automatizada indisponível neste ambiente: inicialização do agent-browser falhou e o download do Chromium expirou. Nenhuma captura visual de sucesso é alegada.
+- O navegador de verificação conseguiu abrir o preview, que exige login Vercel. O acesso pelo Google retornou `502 Bad Gateway` / `Connection refused`; uma nova aba confirmou que a sessão Vercel não estava autenticada. O teste visual das páginas privadas e o fluxo de geração pelo navegador continuam pendentes.
+
+## Recuperação de falhas no painel
+
+O cliente distingue sessão expirada, falha de rede e resposta inválida da API. Dashboard, detalhes do jogo e Vault exibem a falha com ação para tentar novamente ou entrar na conta. Dados que não carregaram não aparecem como métricas zeradas ou Vault vazio. Escritas interrompidas não são repetidas automaticamente.
+
+Seis testes em `tests/wayne-client.test.mjs` verificam gateway HTML, sessão expirada, mensagem de validação, interrupção de escrita, resposta inválida e recuperação na leitura seguinte. Esses testes usam respostas simuladas; não substituem o teste com login real.
 
 ## Uso
 
