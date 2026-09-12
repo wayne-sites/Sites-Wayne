@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { fetchSafeGet, fetchWithTimeout } from "@/lib/server/http";
+import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/server/supabase-env";
 
 const ACCESS_COOKIE = "nexus_access_token";
 const REFRESH_COOKIE = "nexus_refresh_token";
@@ -23,8 +24,8 @@ export type SupabaseSession = {
 type AuthError = { error?: string; error_description?: string; msg?: string; message?: string; error_code?: string };
 
 function config() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = getSupabaseUrl();
+  const key = getSupabasePublishableKey();
   if (!url || !key) throw new Error("supabase_auth_not_configured");
   return { url, key };
 }
