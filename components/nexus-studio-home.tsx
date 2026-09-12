@@ -35,7 +35,7 @@ const creationCards: Array<{ type: ProjectType; label: string; icon: string; des
   { type: "presentation", label: "Presentation", icon: "▥", description: "Slides, narrativa e materiais executivos." },
   { type: "document", label: "Document", icon: "▤", description: "PDF, DOCX, relatórios e documentação." },
   { type: "spreadsheet", label: "Spreadsheet", icon: "▦", description: "Planilhas, modelos, fórmulas e dashboards." },
-  { type: "game", label: "Game", icon: "♢", description: "Jogos web, mobile e protótipos.", href: "/jogos" },
+  { type: "game", label: "Game", icon: "♢", description: "Roblox, Wayne Tree e protótipos.", href: "/studio/wayne/CodeGenerator" },
   { type: "database", label: "Database", icon: "◉", description: "Schemas, relações, RLS e migrations." },
   { type: "api", label: "API", icon: "⇄", description: "REST, webhooks, RPC e integrações." },
   { type: "business", label: "Business", icon: "↗", description: "Produto, vendas, monetização e operação.", href: "/solucoes-corporativas" },
@@ -101,6 +101,7 @@ export function NexusStudioHome({
   return (
     <div className={styles.studio}>
       <section className={styles.createPanel}>
+        <p><Link href="/studio/wayne/CodeGenerator">WAYNE Manager → Gerar Roblox, abrir Vault e Jarvis OS</Link></p>
         <div className={styles.panelHeader}>
           <div>
             <span className={styles.kicker}>UNIVERSAL CREATION ENGINE</span>
@@ -157,7 +158,7 @@ export function NexusStudioHome({
             {projects.slice(0, 12).map((project) => (
               <article key={project.id}>
                 <span>{project.project_type.toUpperCase()}</span>
-                <h3>{project.name}</h3>
+                <h3>{project.name}</h3>{project.project_type === "game" && <Link href="/studio/wayne">Abrir WAYNE Manager →</Link>}
                 <p>{project.description || "Projeto Nexus sem descrição."}</p>
                 <footer><small>{project.artifacts?.length || 0} artefatos</small><code>{project.id.slice(0, 8)}</code></footer>
               </article>

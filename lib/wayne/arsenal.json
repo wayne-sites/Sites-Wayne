@@ -1,0 +1,1082 @@
+[
+  {
+    "id": "pika",
+    "name": "Pika",
+    "category": "VIDEO",
+    "stack": true,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "runway",
+    "name": "Runway",
+    "category": "VIDEO",
+    "stack": true,
+    "approved": true,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "kling",
+    "name": "Kling",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "heygen",
+    "name": "HeyGen",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "elevenlabs",
+    "name": "ElevenLabs",
+    "category": "VIDEO",
+    "stack": true,
+    "approved": true,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "synthesia",
+    "name": "Synthesia",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "veo",
+    "name": "Veo",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "sora",
+    "name": "Sora",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "luma-dream-machine",
+    "name": "Luma Dream Machine",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "descript",
+    "name": "Descript",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "capcut",
+    "name": "CapCut",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "veed",
+    "name": "VEED",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "invideo",
+    "name": "InVideo",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "fliki",
+    "name": "Fliki",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "pictory",
+    "name": "Pictory",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "d-id",
+    "name": "D-ID",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "colossyan",
+    "name": "Colossyan",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "deepbrain-ai",
+    "name": "DeepBrain AI",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "opusclip",
+    "name": "OpusClip",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "wisecut",
+    "name": "Wisecut",
+    "category": "VIDEO",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Trailers e narração dos jogos"
+  },
+  {
+    "id": "chatgpt",
+    "name": "ChatGPT",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "claude",
+    "name": "Claude",
+    "category": "CHATBOT",
+    "stack": true,
+    "approved": true,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "gemini",
+    "name": "Gemini",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "perplexity",
+    "name": "Perplexity",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "poe",
+    "name": "Poe",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "microsoft-copilot",
+    "name": "Microsoft Copilot",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "meta-ai",
+    "name": "Meta AI",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "grok",
+    "name": "Grok",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "le-chat",
+    "name": "Le Chat",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "deepseek",
+    "name": "DeepSeek",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "qwen-chat",
+    "name": "Qwen Chat",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "huggingchat",
+    "name": "HuggingChat",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "character-ai",
+    "name": "Character.AI",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "pi",
+    "name": "Pi",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "you-com",
+    "name": "You.com",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "phind",
+    "name": "Phind",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "elicit",
+    "name": "Elicit",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "consensus",
+    "name": "Consensus",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "notebooklm",
+    "name": "NotebookLM",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "kagi-assistant",
+    "name": "Kagi Assistant",
+    "category": "CHATBOT",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Planejar e revisar código"
+  },
+  {
+    "id": "notion-ai",
+    "name": "Notion AI",
+    "category": "PRODUCTIVITY",
+    "stack": true,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "taskade",
+    "name": "Taskade",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "zapier",
+    "name": "Zapier",
+    "category": "PRODUCTIVITY",
+    "stack": true,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "make",
+    "name": "Make",
+    "category": "PRODUCTIVITY",
+    "stack": true,
+    "approved": true,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "motion",
+    "name": "Motion",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "fireflies",
+    "name": "Fireflies",
+    "category": "PRODUCTIVITY",
+    "stack": true,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "granola",
+    "name": "Granola",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "otter-ai",
+    "name": "Otter.ai",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "fathom",
+    "name": "Fathom",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "reclaim",
+    "name": "Reclaim",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "mem",
+    "name": "Mem",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "bardeen",
+    "name": "Bardeen",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "n8n",
+    "name": "n8n",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Local possível; conferir requisitos",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "obsidian",
+    "name": "Obsidian",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Local possível; conferir requisitos",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "ollama",
+    "name": "Ollama",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Local possível; conferir requisitos",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "lm-studio",
+    "name": "LM Studio",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Local possível; conferir requisitos",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "open-webui",
+    "name": "Open WebUI",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Local possível; conferir requisitos",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "anythingllm",
+    "name": "AnythingLLM",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Local possível; conferir requisitos",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "langgraph",
+    "name": "LangGraph",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Local possível; conferir requisitos",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "flowise",
+    "name": "Flowise",
+    "category": "PRODUCTIVITY",
+    "stack": false,
+    "approved": false,
+    "mode": "Local possível; conferir requisitos",
+    "usage": "Memória, inbox e automação"
+  },
+  {
+    "id": "canva",
+    "name": "Canva",
+    "category": "DESIGN",
+    "stack": true,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "figma-ai",
+    "name": "Figma AI",
+    "category": "DESIGN",
+    "stack": true,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "midjourney",
+    "name": "Midjourney",
+    "category": "DESIGN",
+    "stack": true,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "leonardo-ai",
+    "name": "Leonardo AI",
+    "category": "DESIGN",
+    "stack": true,
+    "approved": true,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "ideogram",
+    "name": "Ideogram",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "looka",
+    "name": "Looka",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "adobe-firefly",
+    "name": "Adobe Firefly",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "recraft",
+    "name": "Recraft",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "krea",
+    "name": "Krea",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "dall-e",
+    "name": "DALL-E",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "stable-diffusion",
+    "name": "Stable Diffusion",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Local possível; conferir requisitos",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "comfyui",
+    "name": "ComfyUI",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Local possível; conferir requisitos",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "automatic1111",
+    "name": "AUTOMATIC1111",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Local possível; conferir requisitos",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "fooocus",
+    "name": "Fooocus",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Local possível; conferir requisitos",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "flux",
+    "name": "Flux",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "clipdrop",
+    "name": "Clipdrop",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "remove-bg",
+    "name": "Remove.bg",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "uizard",
+    "name": "Uizard",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "framer-ai",
+    "name": "Framer AI",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "relume",
+    "name": "Relume",
+    "category": "DESIGN",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "HUD e thumbnails"
+  },
+  {
+    "id": "jasper",
+    "name": "Jasper",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "copy-ai",
+    "name": "Copy.ai",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "rytr",
+    "name": "Rytr",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "grammarly",
+    "name": "Grammarly",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "quillbot",
+    "name": "QuillBot",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "wordtune",
+    "name": "Wordtune",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "sudowrite",
+    "name": "Sudowrite",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "writesonic",
+    "name": "Writesonic",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "anyword",
+    "name": "Anyword",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "writer",
+    "name": "Writer",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "prowritingaid",
+    "name": "ProWritingAid",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "languagetool",
+    "name": "LanguageTool",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Local possível; conferir requisitos",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "deepl-write",
+    "name": "DeepL Write",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "hyperwrite",
+    "name": "HyperWrite",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "textcortex",
+    "name": "TextCortex",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "jenni-ai",
+    "name": "Jenni AI",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "paperpal",
+    "name": "Paperpal",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "trinka",
+    "name": "Trinka",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "lex",
+    "name": "Lex",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "ia-writer",
+    "name": "iA Writer",
+    "category": "WRITING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Textos e documentação"
+  },
+  {
+    "id": "taplio",
+    "name": "Taplio",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "hootsuite",
+    "name": "Hootsuite",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "adcreative-ai",
+    "name": "AdCreative.ai",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "metricool",
+    "name": "Metricool",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "buffer",
+    "name": "Buffer",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "predis-ai",
+    "name": "Predis.ai",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "ocoya",
+    "name": "Ocoya",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "lately",
+    "name": "Lately",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "socialbee",
+    "name": "SocialBee",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "publer",
+    "name": "Publer",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "copysmith",
+    "name": "CopySmith",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "hypotenuse-ai",
+    "name": "Hypotenuse AI",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "surfer",
+    "name": "Surfer",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "frase",
+    "name": "Frase",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "clearscope",
+    "name": "Clearscope",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "marketmuse",
+    "name": "MarketMuse",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "semrush",
+    "name": "Semrush",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "hubspot-breeze",
+    "name": "HubSpot Breeze",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "persado",
+    "name": "Persado",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  },
+  {
+    "id": "optimizely",
+    "name": "Optimizely",
+    "category": "MARKETING",
+    "stack": false,
+    "approved": false,
+    "mode": "Serviço externo; preço e API não verificados",
+    "usage": "Ofertas, análise e distribuição"
+  }
+]
