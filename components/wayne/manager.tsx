@@ -19,7 +19,7 @@ import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 const nav = [
   ["/studio/wayne", "Dashboard"],
-  ["/studio/wayne/CodeGenerator", "Code Generator"],
+  ["/studio/wayne/CodeGenerator", "Gerador Roblox"],
   ["/studio/wayne/JarvisOS", "Jarvis OS"],
   ["/studio/wayne/WayneMarketing", "Marketing"],
   ["/studio/wayne/AIArsenal", "AI Arsenal"],
@@ -35,8 +35,8 @@ const names: Record<Genre, string> = {
   Roleplay_Brookhaven: "Roleplay",
 };
 const badges: Partial<Record<Genre, string>> = {
-  RNG_Brainrot: "PRIORIDADE • 0,5% GOD",
-  Simulator: "FOCO EM MONETIZAÇÃO",
+  RNG_Brainrot: "0,5% GOD",
+  Simulator: "Pets e ovos",
 };
 function useData() {
   const [data, setData] = useState<{
@@ -77,22 +77,19 @@ export function Shell({
             <small>CORPORATION</small>
           </span>
         </a>
-        <p className="nav-title">CONTROL CENTER / V2.0</p>
-        <nav>
-          {nav.map(([href, name], i) => (
+        <p className="nav-title">Workspace</p>
+        <nav aria-label="Navegação WAYNE">
+          {nav.map(([href, name]) => (
             <a
               key={href}
               href={href}
               aria-current={active === href ? "page" : undefined}
             >
-              <span>0{i + 1}</span>
               {name}
             </a>
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <span className="status-dot" />
-          NEXUS CONNECTED
           <p>
             <a href="/studio">← Voltar ao Studio</a>
           </p>
@@ -244,31 +241,27 @@ export function CodeGenerator() {
   return (
     <Shell active="/studio/wayne/CodeGenerator">
       <Heading
-        tag="BUILD / ROBLOX"
-        title="Da ideia ao servidor."
-        description="Escolha um gênero. Gere a estrutura. Valide no Roblox Studio."
+        tag="ROBLOX"
+        title="Gerador Roblox"
+        description="Escolha um gênero e salve sua Wayne Tree."
       />
       <div className="generator">
         <div className="genre-list">
-          {genres.map((g, i) => (
+          {genres.map((g) => (
             <button
               key={g}
               disabled={busy}
+              aria-pressed={genre === g}
               onClick={() => void generate(g)}
               className={"genre " + (genre === g ? "selected" : "")}
             >
-              <span className="genre-number">0{i + 1}</span>
               <div>
                 <strong>{names[g]}</strong>
-                <small>{badges[g] || "WAYNE TREE • STRICT LUAU"}</small>
+                {badges[g] && <small>{badges[g]}</small>}
               </div>
-              <span>↗</span>
             </button>
           ))}
-          <p className="muted">
-            Probabilidades definidas no servidor. Nenhum gênero tem lucro ou
-            viralidade garantidos.
-          </p>
+
         </div>
         <section className="panel generator-output">
           <div className="panel-title">
@@ -305,12 +298,10 @@ export function CodeGenerator() {
           <Message text={msg} />
         </section>
       </div>
-      <div className="security-strip">
-        <span>SERVER AUTHORITY</span>
-        <span>3 REMOTES / JOGO</span>
-        <span>COOLDOWN 0,5s</span>
-        <span>SESSION LOCK</span>
-      </div>
+      <details className="context-note">
+        <summary>Validação e uso no Roblox Studio</summary>
+        <p>Economia no servidor, três remotes por jogo e cooldown de 0,5s. Teste o código no Roblox Studio antes de publicar. Lucro e viralidade não são garantidos.</p>
+      </details>
     </Shell>
   );
 }
@@ -341,9 +332,9 @@ export function Dashboard() {
   return (
     <Shell active="/studio/wayne">
       <Heading
-        tag="OVERVIEW / SEUS JOGOS"
-        title="Seu próximo movimento."
-        description="Visitas e Robux reais, registrados por data. Sem números de demonstração."
+        tag="SEUS JOGOS"
+        title="Visão geral"
+        description="Acompanhe seus jogos e as métricas registradas."
       />
       <div className="kpis">
         {[
@@ -356,7 +347,7 @@ export function Dashboard() {
                 .length ?? 0,
             ),
           ],
-          ["GÊNERO + LUCRATIVO", top ? names[top.genre] : "Sem dados de custo"],
+          ["MAIOR RECEITA", top ? names[top.genre] : "Sem dados"],
         ].map(([label, value]) => (
           <article className="panel" key={label}>
             <small>{label}</small>
@@ -746,12 +737,12 @@ export function JarvisOS() {
       <div className="jarvis-screen">
         <Message text={error} />
         <Heading
-          tag="4 PIEZAS / NEXUS STUDIO"
+          tag="ASSISTENTE"
           title="Wayne Jarvis OS"
           description={
             runtimeMode === "LOCAL"
               ? "Uma voz. Uma memória. Um fluxo. Modo local sem chamada de IA paga."
-              : "Seu login Nexus. Registros privados no Vault da sua conta."
+              : "Comandos e registros privados na sua conta Nexus."
           }
         />
         <div className="four-cards">
@@ -759,17 +750,17 @@ export function JarvisOS() {
             [
               "01",
               "Claude Code",
-              "Motor de nuvem opcional. Cinco skills geram e registram entregas no Nexus.",
+              "Motor de nuvem opcional.",
             ],
             [
               "02",
               "Obsidian Vault",
-              "Markdown no Nexus. Exporte o Vault para abrir no Obsidian.",
+              "Registros Markdown exportáveis.",
             ],
             [
               "03",
               "Voz local",
-              "PT-BR somente quando o navegador comprovar suporte local.",
+              "PT-BR com suporte local do navegador.",
             ],
             ["04", "HUD", "Comandos, agenda e resultados na mesma tela."],
           ].map(([n, t, d]) => (
@@ -872,9 +863,9 @@ export function WayneMarketing() {
   return (
     <Shell active="/studio/wayne/WayneMarketing">
       <Heading
-        tag="GROWTH / EXECUÇÃO"
-        title="Uma oferta. Um teste real."
-        description="Dor → desejo → objeção → mecanismo → prova. Rascunhos salvos no Vault da sua conta Nexus."
+        tag="CRIAÇÃO"
+        title="Marketing"
+        description="Crie rascunhos para seu negócio e salve no Vault."
       />
       <label>
         Contexto do negócio
@@ -904,7 +895,7 @@ export function WayneMarketing() {
           >
             <span>0{i + 1}</span>
             <h2>{name}</h2>
-            <small>GERAR RASCUNHO + SALVAR ↗</small>
+            <small>Gerar e salvar</small>
           </button>
         ))}
       </div>
@@ -943,9 +934,9 @@ export function AIArsenal() {
   return (
     <Shell active="/studio/wayne/AIArsenal">
       <Heading
-        tag="ARSENAL / 120 REFERÊNCIAS"
-        title="Escolha a ferramenta certa."
-        description="Catálogo curado a partir dos nomes fornecidos, ampliado para 120. Registro não significa integração instalada."
+        tag="AI ARSENAL"
+        title="Ferramentas de IA"
+        description="120 referências para criação, produtividade e automação."
       />
       <div className="arsenal-intro">
         <div className="wheel" aria-label="Seis categorias do arsenal">
@@ -960,10 +951,10 @@ export function AIArsenal() {
             Claude · ElevenLabs · Notion AI · Canva + Figma · Runway + Pika ·
             Make + Zapier · Leonardo + Midjourney · Fireflies
           </p>
-          <p className="muted">
-            “Wayne Approved” é sua seleção, não garantia de retorno. Claude Max
-            é plano, não API key. Preços e disponibilidade exigem conferência.
-          </p>
+          <details className="context-note">
+            <summary>Sobre o catálogo</summary>
+            <p>As ferramentas não estão conectadas. Wayne Approved indica sua seleção. Claude Max é um plano, não uma API key. Confira preços e disponibilidade no provedor.</p>
+          </details>
         </div>
       </div>
       <div className="toolbar">
@@ -1007,7 +998,7 @@ export function AIArsenal() {
             )}
             <p>{t.usage}</p>
             <small>{t.mode}</small>
-            <p className="muted">Não conectada / sem execução de API</p>
+            <p className="muted tool-status">Não conectada</p>
             <Button
               variant="outline"
               onClick={() => {
@@ -1017,7 +1008,7 @@ export function AIArsenal() {
                 );
               }}
             >
-              Conectar API Key
+              Configurar integração
             </Button>
             {selected === t.id && <Message text={msg} />}
           </article>
@@ -1030,8 +1021,8 @@ export function ARFuture() {
   return (
     <Shell active="/studio/wayne/AR-Future">
       <Heading
-        tag="RESEARCH / PRIMEIRA PESSOA"
-        title="Além da tela."
+        tag="PESQUISA"
+        title="AR Future"
         description="Estrutura de câmera pronta para protótipos. Integração Orion ainda não implementada."
       />
       <div className="panel ar-panel">
@@ -1066,7 +1057,7 @@ function VaultView({ entries }: { entries: VaultEntry[] }) {
         </a>
       </div>
       <p className="muted">
-        Últimos 50 registros. A exportação inclui estes 50 registros.
+        Até 50 registros recentes, disponíveis para exportação.
       </p>
       {entries.length ? (
         entries.map((entry) => (
