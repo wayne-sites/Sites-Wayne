@@ -77,7 +77,7 @@ export function Shell({
             <small>CORPORATION</small>
           </span>
         </a>
-        <p className="nav-title">Workspace</p>
+        <p className="nav-title">Área de trabalho</p>
         <nav aria-label="Navegação WAYNE">
           {nav.map(([href, name]) => (
             <a
@@ -232,7 +232,7 @@ export function CodeGenerator() {
     } catch (e) {
       setMsg(
         (e as Error).message +
-          " • código padrão disponível, sem registro de execução.",
+          " Não foi possível confirmar o registro no Vault. O código padrão está disponível para consulta.",
       );
     } finally {
       setBusy(false);
@@ -243,7 +243,7 @@ export function CodeGenerator() {
       <Heading
         tag="ROBLOX"
         title="Gerador Roblox"
-        description="Escolha um gênero e salve sua Wayne Tree."
+        description="Escolha um gênero para gerar os arquivos do jogo e salvar no Vault."
       />
       <div className="generator">
         <div className="genre-list">
@@ -409,12 +409,12 @@ export function Dashboard() {
           </svg>
         ) : (
           <div className="empty">
-            Sem medições. Abra um jogo para registrar os primeiros dados.
+            Ainda não há métricas. Abra um jogo para registrar visitas e Robux.
           </div>
         )}
         <p className="muted">
-          Receita não equivale a lucro. O gênero com maior receita só pode ser
-          comparado após registrar seus custos.
+          Os valores mostram a receita em Robux. Para calcular o lucro,
+          considere também os custos de cada jogo.
         </p>
       </div>
       <div className="panel table-wrap">
@@ -514,18 +514,18 @@ function GameWorkspace({
   return (
     <>
       <Heading
-        tag="PROJECT / WAYNE TREE"
+        tag="PROJETO / WAYNE TREE"
         title={game.name}
-        description="Configuração, monetização e sinais do servidor."
+        description="Edite a configuração e consulte os dados registrados do jogo."
       />
       <Tabs defaultValue="tree">
         <TabsList>
           {[
             ["tree", "Wayne Tree"],
-            ["config", "Config Editor"],
+            ["config", "Configuração"],
             ["money", "Monetização"],
-            ["players", "Players"],
-            ["logs", "Logs Anti-Hack"],
+            ["players", "Jogadores"],
+            ["logs", "Logs de segurança"],
           ].map(([v, t]) => (
             <TabsTrigger key={v} value={v}>
               {t}
@@ -549,7 +549,7 @@ function GameWorkspace({
           <div className="two-col">
             <section className="panel">
               <JsonEditor
-                label="Config.json — validado antes de gerar Luau"
+                label="Config.json (validado antes de gerar Luau)"
                 value={game.config}
                 onSave={(c) => patch({ config: c })}
               />
@@ -642,7 +642,7 @@ function GameWorkspace({
                 <tr>
                   <th>Jogador</th>
                   <th>Moedas</th>
-                  <th>Level</th>
+                  <th>Nível</th>
                   <th>Inventário</th>
                 </tr>
               </thead>
@@ -660,7 +660,7 @@ function GameWorkspace({
               </tbody>
             </table>
             {!state.players.some((p) => p.gameId === game.id) && (
-              <p className="empty">Nenhum snapshot de jogador recebido.</p>
+              <p className="empty">Ainda não há dados de jogadores registrados.</p>
             )}
           </div>
         </TabsContent>
@@ -677,8 +677,8 @@ function GameWorkspace({
               ))}
             {!state.logs.some((l) => l.gameId === game.id) && (
               <p className="empty">
-                Sem logs recebidos. Ausência de logs não comprova ausência de
-                ataques.
+                Nenhum log registrado. Sem esses dados, não é possível avaliar
+                a ocorrência de ataques.
               </p>
             )}
           </div>
@@ -741,7 +741,7 @@ export function JarvisOS() {
           title="Wayne Jarvis OS"
           description={
             runtimeMode === "LOCAL"
-              ? "Uma voz. Uma memória. Um fluxo. Modo local sem chamada de IA paga."
+              ? "Execute comandos e consulte seus registros em modo local, sem chamadas de IA pagas."
               : "Comandos e registros privados na sua conta Nexus."
           }
         />
@@ -750,17 +750,17 @@ export function JarvisOS() {
             [
               "01",
               "Claude Code",
-              "Motor de nuvem opcional.",
+              "IA na nuvem, com uso opcional.",
             ],
             [
               "02",
               "Obsidian Vault",
-              "Registros Markdown exportáveis.",
+              "Exporte seus registros em Markdown.",
             ],
             [
               "03",
               "Voz local",
-              "PT-BR com suporte local do navegador.",
+              "Voz em PT-BR, quando disponível no navegador em modo local.",
             ],
             ["04", "HUD", "Comandos, agenda e resultados na mesma tela."],
           ].map(([n, t, d]) => (
@@ -846,7 +846,7 @@ export function JarvisOS() {
           ))}
         </div>
         <p className="muted">
-          Horários de referência. Nenhuma rotina está agendada automaticamente
+          Estes horários são sugestões. As rotinas ainda não estão agendadas
           no Nexus.
         </p>
         <VaultView entries={data?.vault || []} />
@@ -900,9 +900,9 @@ export function WayneMarketing() {
         ))}
       </div>
       <section className="panel">
-        <h2>Saída</h2>
+        <h2>Rascunho</h2>
         <pre className="marketing-output">
-          {output || "Escolha um dos seis fluxos."}
+          {output || "Descreva seu negócio e escolha o conteúdo que deseja criar."}
         </pre>
         <Button
           variant="outline"
@@ -942,7 +942,7 @@ export function AIArsenal() {
         <div className="wheel" aria-label="Seis categorias do arsenal">
           <div>
             <strong>120</strong>
-            <span>TOOLS</span>
+            <span>FERRAMENTAS</span>
           </div>
         </div>
         <div>
@@ -953,7 +953,7 @@ export function AIArsenal() {
           </p>
           <details className="context-note">
             <summary>Sobre o catálogo</summary>
-            <p>As ferramentas não estão conectadas. Wayne Approved indica sua seleção. Claude Max é um plano, não uma API key. Confira preços e disponibilidade no provedor.</p>
+            <p>Este catálogo reúne ferramentas para consultar e integrar separadamente. Nenhuma está conectada. O selo Wayne Approved marca sua seleção; Claude Max identifica um plano de assinatura. Confira preços, acesso à API e disponibilidade com cada provedor.</p>
           </details>
         </div>
       </div>
@@ -1004,11 +1004,11 @@ export function AIArsenal() {
               onClick={() => {
                 setSelected(t.id);
                 setMsg(
-                  "Configure a credencial no backend do Nexus. Este catálogo não armazena chaves nem confirma conexão com o provedor.",
+                  "A integração precisa ser configurada no servidor do Nexus. Esta página não recebe chaves de API nem verifica a conexão com o provedor.",
                 );
               }}
             >
-              Configurar integração
+              Como integrar
             </Button>
             {selected === t.id && <Message text={msg} />}
           </article>
@@ -1026,8 +1026,8 @@ export function ARFuture() {
         description="Estrutura de câmera pronta para protótipos. Integração Orion ainda não implementada."
       />
       <div className="panel ar-panel">
-        <span className="eyebrow">ORION / FUTURE INTERFACE</span>
-        <h2>First-person interface</h2>
+        <span className="eyebrow">PROTÓTIPO / ORION</span>
+        <h2>Câmera em primeira pessoa</h2>
         <p>
           O módulo FirstPersonController permite alternar a câmera no Roblox.
           Nenhum SDK de óculos, acesso a câmera real ou transmissão é ativado.
@@ -1057,7 +1057,7 @@ function VaultView({ entries }: { entries: VaultEntry[] }) {
         </a>
       </div>
       <p className="muted">
-        Até 50 registros recentes, disponíveis para exportação.
+        Consulte e exporte até 50 registros recentes.
       </p>
       {entries.length ? (
         entries.map((entry) => (
