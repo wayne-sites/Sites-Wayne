@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
+import { isWayneOwner } from "@/lib/server/wayne-owner";
 import { getCurrentUser } from "@/lib/supabase/auth";
 import "./wayne.css";
 export const dynamic = "force-dynamic";
@@ -12,6 +13,8 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
-  if (!(await getCurrentUser())) redirect("/entrar?next=/studio/wayne");
+  const user = await getCurrentUser();
+  if (!user) redirect("/entrar?next=/studio/wayne");
+  if (!(await isWayneOwner(user.id))) notFound();
   return children;
 }

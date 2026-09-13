@@ -1,4 +1,4 @@
-import type { State, VaultEntry, SourceFile } from "./types";
+import type { State, VaultEntry, SourceFile, Genre } from "./types";
 export const runtimeMode: string = "NEXUS";
 export type ActionResult = {
   files?: SourceFile[];
@@ -40,6 +40,7 @@ async function request(init?: RequestInit) {
 export async function loadManager(): Promise<{
   state: State;
   vault: VaultEntry[];
+  templates?: Record<Genre, SourceFile[]>;
 }> {
   const body = await request();
   if (!Array.isArray(body.state?.games) || !Array.isArray(body.state?.players)

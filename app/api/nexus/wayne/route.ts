@@ -7,6 +7,8 @@ import {
 } from "@/lib/server/wayne-store";
 import { apiError, requestId } from "@/lib/server/http";
 import { rateLimit } from "@/lib/server/rate-limit";
+import { isWayneOwner } from "@/lib/server/wayne-owner";
+import templates from "@/lib/wayne/bundles.json";
 import { readWayneJson, wayneOriginAllowed } from "@/lib/wayne/http";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +18,8 @@ export async function GET(request: NextRequest) {
   if (!user)
     return apiError("Entre na sua conta Nexus.", 401, id, "auth_required");
   try {
-    return NextResponse.json(await loadWayne(user.id), {
+    if (!(await isWayneOwner(user.id))) return apiError("Acesso restrito ao proprietário.", 403, id, "owner_required");
+    return NextResponse.json({ ...await loadWayne(user.id), templates }, {
       headers: { "Cache-Control": "private, no-store", Vary: "Cookie" },
     });
   } catch {
@@ -59,6 +62,7 @@ export async function POST(request: NextRequest) {
     );
   }
   try {
+    if (!(await isWayneOwner(user.id))) return apiError("Acesso restrito ao proprietário.", 403, id, "owner_required");
     return NextResponse.json(await runWayne(user.id, input), {
       headers: { "Cache-Control": "private, no-store", Vary: "Cookie" },
     });

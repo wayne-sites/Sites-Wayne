@@ -6,6 +6,7 @@ import { NexusStudioHome } from "@/components/nexus-studio-home";
 import { NexusWorkerPresence } from "@/components/nexus-worker-presence";
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { listNexusProjectsForUser, type NexusProject } from "@/lib/server/nexus-core-store";
+import { isWayneOwner } from "@/lib/server/wayne-owner";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default async function NexusStudioPage() {
 
   const pairingEnabled = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL?.trim())
     && (process.env.NEXUS_WORKER_PAIRING_V1 === "1" || process.env.VERCEL_ENV === "preview");
+  const wayneOwner = await isWayneOwner(user.id).catch(() => false);
 
   return (
     <ModuleShell
@@ -37,7 +39,7 @@ export default async function NexusStudioPage() {
       description="PROJECT, ARTIFACT, TOOL, EXECUTION, INTEGRATION e DEPLOYMENT formam a base persistente do Universal Creation Engine."
       action={<Link className="primary-button" href="/builder">ABRIR BUILDER <span>→</span></Link>}
     >
-      <NexusStudioHome initialProjects={projects} coreReady={coreReady} pairingEnabled={pairingEnabled} />
+      <NexusStudioHome initialProjects={projects} coreReady={coreReady} pairingEnabled={pairingEnabled} wayneOwner={wayneOwner} />
       <NexusWorkerPresence />
     </ModuleShell>
   );

@@ -52,10 +52,12 @@ export function NexusStudioHome({
   initialProjects,
   coreReady,
   pairingEnabled,
+  wayneOwner = false,
 }: {
   initialProjects: NexusProject[];
   coreReady: boolean;
   pairingEnabled: boolean;
+  wayneOwner?: boolean;
 }) {
   const [brief, setBrief] = useState("");
   const [selectedType, setSelectedType] = useState<ProjectType | null>(null);
@@ -101,7 +103,7 @@ export function NexusStudioHome({
   return (
     <div className={styles.studio}>
       <section className={styles.createPanel}>
-        <p><Link href="/studio/wayne/CodeGenerator">WAYNE Manager → Gerar Roblox, abrir Vault e Jarvis OS</Link></p>
+        {wayneOwner && <p><Link href="/studio/wayne/SiteLab">WAYNE privado → Laboratório de sites, Vault e Jarvis OS</Link></p>}
         <div className={styles.panelHeader}>
           <div>
             <span className={styles.kicker}>UNIVERSAL CREATION ENGINE</span>
@@ -146,7 +148,7 @@ export function NexusStudioHome({
         {created && (
           <div className={styles.created}>
             <div><span>PROJECT</span><strong>{created.name}</strong><small>{created.project_type} • {created.status} • {created.id.slice(0, 8).toUpperCase()}</small></div>
-            {selectedCard?.href && <Link href={`${selectedCard.href}?project=${encodeURIComponent(created.id)}`}>ABRIR MOTOR <span>→</span></Link>}
+            {selectedCard?.href && (wayneOwner || selectedCard.type !== "game") && <Link href={`${selectedCard.href}?project=${encodeURIComponent(created.id)}`}>ABRIR MOTOR <span>→</span></Link>}
           </div>
         )}
       </section>
@@ -158,7 +160,7 @@ export function NexusStudioHome({
             {projects.slice(0, 12).map((project) => (
               <article key={project.id}>
                 <span>{project.project_type.toUpperCase()}</span>
-                <h3>{project.name}</h3>{project.project_type === "game" && <Link href="/studio/wayne">Abrir WAYNE Manager →</Link>}
+                <h3>{project.name}</h3>{wayneOwner && project.project_type === "game" && <Link href="/studio/wayne">Abrir WAYNE Manager →</Link>}
                 <p>{project.description || "Projeto Nexus sem descrição."}</p>
                 <footer><small>{project.artifacts?.length || 0} artefatos</small><code>{project.id.slice(0, 8)}</code></footer>
               </article>

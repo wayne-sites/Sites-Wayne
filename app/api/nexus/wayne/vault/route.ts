@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { loadWayne } from "@/lib/server/wayne-store";
+import { isWayneOwner } from "@/lib/server/wayne-owner";
 export const dynamic = "force-dynamic";
 export async function GET() {
   const user = await getCurrentUser();
@@ -9,6 +10,7 @@ export async function GET() {
       { status: 401, headers: { "Cache-Control": "no-store" } },
     );
   try {
+    if (!(await isWayneOwner(user.id))) return Response.json({ error: "Acesso restrito ao proprietário." }, { status: 403, headers: { "Cache-Control": "no-store" } });
     const { vault } = await loadWayne(user.id);
     const text =
       "# Vault Nexus — últimos 50 registros\n\n" +

@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
-import bundles from "@/lib/wayne/bundles.json";
 import tools from "@/lib/wayne/arsenal.json";
 import {
   genres,
@@ -18,6 +17,7 @@ import { listenLocal, speakLocal } from "@/lib/wayne/voice";
 import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 const nav = [
+  ["/studio/wayne/SiteLab", "Laboratório de sites"],
   ["/studio/wayne", "Dashboard"],
   ["/studio/wayne/CodeGenerator", "Gerador Roblox"],
   ["/studio/wayne/JarvisOS", "Jarvis OS"],
@@ -42,6 +42,7 @@ function useData() {
   const [data, setData] = useState<{
     state: State;
     vault: VaultEntry[];
+    templates?: Record<Genre, SourceFile[]>;
   } | null>(null);
   const [error, setError] = useState("");
   const [authRequired, setAuthRequired] = useState(false);
@@ -245,13 +246,15 @@ function CodePanel({ files }: { files: SourceFile[] }) {
   );
 }
 export function CodeGenerator() {
+  const { data, error, refresh, authRequired, loading } = useData();
   const [genre, setGenre] = useState<Genre>("RNG_Brainrot");
-  const [files, setFiles] = useState<SourceFile[]>(bundles.RNG_Brainrot);
+  const [generated, setFiles] = useState<SourceFile[] | null>(null);
+  const files = generated ?? data?.templates?.[genre] ?? [];
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   async function generate(g: Genre) {
     setGenre(g);
-    setFiles(bundles[g]);
+    setFiles(null);
     setBusy(true);
     setMsg("");
     try {
@@ -275,12 +278,14 @@ export function CodeGenerator() {
         title="Gerador Roblox"
         description="Escolha um gênero para gerar os arquivos do jogo e salvar no Vault."
       />
+      {error && <LoadFailure {...{ error, refresh, authRequired, loading }} />}
+      {!data && !error && <p role="status">Carregando os modelos privados…</p>}
       <div className="generator">
         <div className="genre-list">
           {genres.map((g) => (
             <button
               key={g}
-              disabled={busy}
+              disabled={busy || !data}
               aria-pressed={genre === g}
               onClick={() => void generate(g)}
               className={"genre " + (genre === g ? "selected" : "")}
@@ -302,7 +307,7 @@ export function CodeGenerator() {
             <span className="badge">{files.length} ARQUIVOS</span>
           </div>
           <div className="toolbar">
-            <Button disabled={busy} onClick={() => void generate(genre)}>
+            <Button disabled={busy || !data} onClick={() => void generate(genre)}>
               {busy ? "Registrando…" : "Gerar e salvar no Vault"}
             </Button>
             <Button
@@ -538,10 +543,12 @@ function GameWorkspace({
   game,
   state,
   refresh,
+  templates,
 }: {
   game: Game;
   state: State;
   refresh: () => Promise<unknown>;
+  templates: SourceFile[];
 }) {
   const [msg, setMsg] = useState("");
   async function patch(patch: Record<string, unknown>) {
@@ -572,7 +579,7 @@ function GameWorkspace({
         <TabsContent value="tree">
           <CodePanel
             key={JSON.stringify(game.config)}
-            files={bundles[game.genre].map((f) =>
+            files={templates.map((f) =>
               f.arquivo.endsWith("/Config.lua")
                 ? { ...f, codigoLuau: configLua(game.genre, game.config) }
                 : f,
@@ -736,6 +743,7 @@ export function GameDetail() {
           game={game}
           state={data.state}
           refresh={refresh}
+          templates={data.templates?.[game.genre] || []}
         />
       ) : (
         <div className="empty">
@@ -1054,6 +1062,7 @@ export function AIArsenal() {
   );
 }
 export function ARFuture() {
+  const { data, error, refresh, authRequired, loading } = useData();
   return (
     <Shell active="/studio/wayne/AR-Future">
       <Heading
@@ -1062,6 +1071,7 @@ export function ARFuture() {
         description="Estrutura de câmera pronta para protótipos. Integração Orion ainda não implementada."
       />
       <div className="panel ar-panel">
+        {error && <LoadFailure {...{ error, refresh, authRequired, loading }} />}
         <span className="eyebrow">PROTÓTIPO / ORION</span>
         <h2>Câmera em primeira pessoa</h2>
         <p>
@@ -1071,7 +1081,7 @@ export function ARFuture() {
         <pre>
           <code>
             {
-              bundles.RNG_Brainrot.find((f) =>
+              data?.templates?.RNG_Brainrot.find((f) =>
                 f.arquivo.endsWith("FirstPersonController.lua"),
               )?.codigoLuau
             }

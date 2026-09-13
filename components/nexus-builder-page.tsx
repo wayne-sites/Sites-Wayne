@@ -19,6 +19,7 @@ type BuilderResponse = {
   remaining?: number;
   capabilities?: string[];
   generationPath?: "structured" | "repaired" | "html-fallback";
+  ownerReview?: { status: string; id?: string };
 };
 
 type PreviewMode = "desktop" | "tablet" | "mobile";
@@ -153,6 +154,27 @@ export function NexusBuilderPage() {
   const [capabilityCategory, setCapabilityCategory] = useState<BuilderCapabilityCategory | "Todos">("Todos");
   const [previewMode, setPreviewMode] = useState<PreviewMode>("desktop");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [ownerReview, setOwnerReview] = useState(false);
+  const [reviewNotice, setReviewNotice] = useState("");
+  const [sharedCopies, setSharedCopies] = useState<Array<{id: string; name: string}>>([]);
+  async function loadSharedCopies() {
+    try {
+      const response = await fetch("/api/builder/reviews", { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw Error(data.error);
+      setSharedCopies(data.reviews);
+      setReviewNotice(data.reviews.length ? "Você pode remover as cópias abaixo." : "Nenhuma cópia interna autorizada.");
+    } catch (e) { setReviewNotice(e instanceof Error ? e.message : "Não foi possível consultar as cópias."); }
+  }
+  async function removeSharedCopy(id: string) {
+    try {
+      const response = await fetch("/api/builder/reviews", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      const data = await response.json();
+      if (!response.ok) throw Error(data.error);
+      setSharedCopies(current => current.filter(copy => copy.id !== id));
+      setReviewNotice("Cópia interna removida. O seu site permanece intacto.");
+    } catch (e) { setReviewNotice(e instanceof Error ? e.message : "Não foi possível remover a cópia."); }
+  }
 
   useEffect(() => {
     try {
@@ -236,6 +258,7 @@ export function NexusBuilderPage() {
     setLoading(true);
     setError("");
     setProject(null);
+    setReviewNotice("");
     setSelectedPath("");
 
     try {
@@ -247,6 +270,7 @@ export function NexusBuilderPage() {
           projectType,
           visualStyle,
           capabilities: [...selectedCapabilities],
+          ownerReview,
         }),
       });
       const data = (await response.json()) as BuilderResponse;
@@ -255,6 +279,9 @@ export function NexusBuilderPage() {
         return;
       }
       setProject(data.project);
+      if (data.ownerReview?.status === "saved") setReviewNotice("Cópia autorizada e revisão interna salvas. Seu site original não foi alterado.");
+      else if (data.ownerReview?.status === "signin_required") setReviewNotice("Site gerado. A cópia interna exige login no Nexus e não foi salva.");
+      else if (data.ownerReview?.status === "failed") setReviewNotice("Site gerado. Não foi possível confirmar a cópia interna.");
       setSelectedPath(data.project.files[0]?.path || "");
       setProvider(data.provider || null);
       setModel(data.model || null);
@@ -443,6 +470,10 @@ export function NexusBuilderPage() {
             </div>
           </section>
 
+          <label className={styles.capabilityItem}>
+            <input type="checkbox" checked={ownerReview} disabled={loading} onChange={event => setOwnerReview(event.target.checked)} />
+            <span><strong>Autorizar revisão interna pela Wayne</strong><small>Opcional. Autoriza o proprietário do Nexus a guardar o código gerado e criar uma versão revisada privada. Não publica nem transfere a titularidade do seu site. Requer login.</small></span>
+          </label>
           <button className={styles.generate} disabled={loading || brief.trim().length < 20}>
             {loading ? "Gerando projeto..." : `Criar com ${selectedCapabilities.size} módulos`}
           </button>
@@ -452,6 +483,11 @@ export function NexusBuilderPage() {
             {remaining !== null ? ` • ${remaining} gerações restantes hoje.` : ""}
           </p>
           {error && <p className={styles.error}>{error}</p>}
+          {reviewNotice && <p role="status" className={styles.note}>{reviewNotice}</p>}
+          <details><summary>Cópias internas autorizadas</summary>
+            <button type="button" onClick={() => void loadSharedCopies()}>Consultar minhas cópias</button>
+            {sharedCopies.map(copy => <p key={copy.id}>{copy.name} <button type="button" onClick={() => void removeSharedCopy(copy.id)}>Retirar autorização e apagar cópia</button></p>)}
+          </details>
 
           <div className={styles.history}>
             <div className={styles.historyHead}>

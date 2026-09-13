@@ -1,11 +1,11 @@
 # WAYNE Manager no Nexus Studio
 
-Acesso: `/studio/wayne/CodeGenerator`, usando o mesmo login Nexus. O Studio contém um acesso direto ao Manager. As outras rotas são `/studio/wayne`, `/studio/wayne/GameDetail?id=RNG_Brainrot`, `/studio/wayne/JarvisOS`, `/studio/wayne/WayneMarketing`, `/studio/wayne/AIArsenal` e `/studio/wayne/AR-Future`.
+Acesso: `/studio/wayne/CodeGenerator`, usando o mesmo login Nexus e exigindo o papel `owner` verificado no servidor. O Studio contém um acesso direto ao Manager. As outras rotas são `/studio/wayne`, `/studio/wayne/GameDetail?id=RNG_Brainrot`, `/studio/wayne/JarvisOS`, `/studio/wayne/WayneMarketing`, `/studio/wayne/AIArsenal` e `/studio/wayne/AR-Future`.
 
 ## Integração
 
 - Sete gêneros Luau originais e configuração validada no servidor. Gerar persiste um projeto Nexus por gênero, arquivos versionados em `nexus_artifacts`, execução em `nexus_tool_runs`, audit e registro Markdown no Vault.
-- Estado e Vault privados por usuário, aproveitando a autenticação Supabase existente. A RPC é acessível somente pelo servidor. Escritas são transacionais e revisões concorrentes retornam conflito, sem perder alterações.
+- Manager, templates Luau e Vault acessíveis no aplicativo somente ao owner, aproveitando a autenticação Supabase existente. A RPC é acessível somente pelo servidor. Escritas são transacionais e revisões concorrentes retornam conflito, sem perder alterações.
 - Cinco skills determinísticas: gerar Roblox, métricas, inbox, plano e Vault. Marketing gera seis rascunhos, sem enviar mensagens nem chamar API paga.
 - Exportação Markdown dos últimos 50 registros para uso no Obsidian. O Vault do Nexus fica na conta; não sincroniza automaticamente o disco do Bodhi.
 - Dashboard, Config Editor, planejamento de Gamepasses, players e logs preparados; nenhum número de receita é inventado. Métricas são informadas pelo usuário.
@@ -20,7 +20,7 @@ RLS habilitado; leitura limitada ao proprietário; clientes não podem gravar di
 
 ## Verificação
 
-- Build e TypeScript aprovados. 128 testes aprovados, incluindo seis grupos de testes Wayne.
+- Build e TypeScript aprovados. 139 testes aprovados, incluindo seis grupos de testes Wayne.
 - ESLint sem erros; dez avisos anteriores nos componentes de autenticação e home.
 - `scripts/verify-wayne-sql.mjs` valida no PGlite: geração atômica, versões, rejeição de revisão antiga, rollback, isolamento entre donos e bloqueio de anon/browser. Executar com `PGLITE_MODULE_PATH` apontando para uma instalação de `@electric-sql/pglite`.
 - Banco remoto: RPC executada como service_role em transação de teste, com Vault e arquivos Luau verificados e rollback integral. RLS e permissões confirmados.
@@ -41,3 +41,7 @@ Seis testes em `tests/wayne-client.test.mjs` verificam gateway HTML, sessão exp
 4. Use Config Editor para alterações e gere novamente para registrar uma nova versão.
 
 Uma geração salva não publica um jogo e não transfere os dados já existentes no computador para a nuvem.
+
+## Laboratório privado
+
+`/studio/wayne/SiteLab` guarda revisões autorizadas de sites gerados no Builder. Consulte [NEXUS-SITE-LAB.md](NEXUS-SITE-LAB.md) para funcionamento, limites e validação. Restringir o painel não torna privado o código já publicado no repositório GitHub.
