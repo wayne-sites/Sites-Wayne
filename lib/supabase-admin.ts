@@ -1,9 +1,10 @@
 import type { WayneSiteOrder } from "@/lib/wayne-autopilot";
 import { fetchSafeGet, fetchWithTimeout } from "@/lib/server/http";
+import { getSupabaseSecretKey, getSupabaseUrl, isSupabaseServerConfigured } from "@/lib/server/supabase-env";
 
 function getConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = getSupabaseUrl();
+  const key = getSupabaseSecretKey();
   if (!url || !key) throw new Error("supabase_not_configured");
   return { url, key };
 }
@@ -136,5 +137,5 @@ export async function listPublishedWayneSites(limit = 100) {
 }
 
 export function isSupabaseConfigured() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  return isSupabaseServerConfigured();
 }

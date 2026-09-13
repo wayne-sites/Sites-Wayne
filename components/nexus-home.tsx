@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { SearchDialog } from "@/components/search-dialog";
 import { siteConfig } from "@/config/site";
 
 type NavItem = { label: string; icon: string; id: string; href: string };
@@ -26,15 +27,18 @@ const plannedTopics = [
 ];
 
 const searchData = [
+  { type: "Site", title: "Nexus Studio", detail: "Projetos, artefatos e execuções da sua conta", href: "/studio" },
+  { type: "Site", title: "Ferramentas Nexus", detail: "Catálogo de ferramentas e capacidades", href: "/tools" },
+  { type: "Site", title: "Automações", detail: "Dispositivos e tarefas", href: "/automacoes" },
   { type: "Site", title: "Contratar Sites Wayne", detail: "Pacotes comerciais e diagnóstico inicial", href: "/servicos" },
   { type: "Site", title: "Auditoria gratuita de site", detail: "Dez critérios e resultado privado", href: "/auditoria" },
   { type: "Curso", title: "Wayne Game Lab", detail: "Doze missões do protótipo ao produto", href: "/aprender/game-dev" },
-  { type: "IA", title: "Ferramentas de produtividade", detail: "Disponível em modo beta" },
-  { type: "Curso", title: "Área de aprendizagem", detail: "Catálogo em preparação" },
-  { type: "Comunidade", title: "Comunidades temáticas", detail: "Inscrições em breve" },
-  { type: "Produto", title: "Marketplace de criadores", detail: "Ainda sem vendedores cadastrados" },
+  { type: "IA", title: "Ferramentas de produtividade", detail: "Disponível em modo beta", href: "/ia" },
+  { type: "Curso", title: "Área de aprendizagem", detail: "Catálogo em preparação", href: "/aprender" },
+  { type: "Comunidade", title: "Comunidades temáticas", detail: "Inscrições em breve", href: "/comunidades" },
+  { type: "Produto", title: "Marketplace de criadores", detail: "Ainda sem vendedores cadastrados", href: "/marketplace" },
   { type: "Site", title: "Barbearia Wayne", detail: "Site publicado no ecossistema Sites Wayne", href: "/barbearia-wayne" },
-  { type: "Vídeo", title: "Nexus Play", detail: "Catálogo em preparação" },
+  { type: "Vídeo", title: "Nexus Play", detail: "Catálogo em preparação", href: "/videos" },
 ];
 
 function Logo({ compact = false }: { compact?: boolean }) {
@@ -53,8 +57,6 @@ export function NexusHome() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(false);
   const [toast, setToast] = useState("");
-  const [saved, setSaved] = useState<string[]>([]);
-  const [email, setEmail] = useState("");
 
   const results = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("pt-BR");
@@ -70,17 +72,6 @@ export function NexusHome() {
     window.setTimeout(() => setToast(""), 2400);
   }
 
-  function toggleSaved(item: string) {
-    setSaved((current) => current.includes(item) ? current.filter((value) => value !== item) : [...current, item]);
-    notify(saved.includes(item) ? "Removido dos salvos" : "Salvo na sua coleção");
-  }
-
-  function submitNewsletter(event: FormEvent) {
-    event.preventDefault();
-    if (!email.includes("@")) return notify("Digite um e-mail válido");
-    notify("A newsletter ainda está em preparação");
-    setEmail("");
-  }
 
   return (
     <div className="nexus-app" data-theme={theme}>
@@ -106,8 +97,8 @@ export function NexusHome() {
         </div>
         <div className="sidebar-user">
           <span className="avatar avatar-way">MW</span>
-          <span><strong>Visitante</strong><small>Conta gratuita</small></span>
-          <button aria-label="Abrir menu do perfil" onClick={() => notify("Entre para personalizar seu Nexus")}>•••</button>
+          <span><strong>Visitante</strong><small>Acesso público</small></span>
+          <button aria-label="Entrar na conta" onClick={() => { window.location.href = "/entrar"; }}>•••</button>
         </div>
       </aside>
 
@@ -121,11 +112,11 @@ export function NexusHome() {
             <span className="online"><i /> Versão beta</span>
             <button className="icon-button" aria-label="Alternar tema" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? "☼" : "☾"}</button>
             <button className="icon-button notification-button" aria-label="Ver notificações" onClick={() => setNoticeOpen(!noticeOpen)}>♢<i /></button>
-            <a className="primary-small" href="/entrar">Criar conta</a>
+            <a className="primary-small" href="/cadastro">Criar conta</a>
           </div>
           {noticeOpen && (
             <div className="notification-popover">
-              <div><strong>Notificações</strong><button onClick={() => setNoticeOpen(false)}>×</button></div>
+              <div><strong>Notificações</strong><button aria-label="Fechar notificações" onClick={() => setNoticeOpen(false)}>×</button></div>
               <article><span>✦</span><p><b>Bem-vindo ao Nexus</b><small>Seu novo universo digital começa aqui.</small></p></article>
               <article><span>◎</span><p><b>Recursos em implantação</b><small>Dados reais serão exibidos após o lançamento.</small></p></article>
             </div>
@@ -174,7 +165,7 @@ export function NexusHome() {
                   <span className="tag tag-purple">CRIATIVIDADE</span>
                   <h3>O futuro já começou — e ele está sendo criado aqui.</h3>
                   <p>Conheça os brasileiros transformando ideias em negócios reais.</p>
-                  <div><span className="avatar avatar-lia">NB</span><p><strong>Equipe Nexus Brasil</strong><small>Conteúdo editorial em preparação</small></p><button className={saved.includes("story") ? "saved" : ""} aria-label="Salvar matéria" onClick={() => toggleSaved("story")}>{saved.includes("story") ? "✓" : "◇"}</button></div>
+                  <div><span className="avatar avatar-lia">NB</span><p><strong>Equipe Nexus Brasil</strong><small>Conteúdo editorial em preparação</small></p></div>
                 </div>
               </article>
               <article className="pulse-card">
@@ -196,7 +187,7 @@ export function NexusHome() {
               ].map((video, index) => (
                 <article className="video-card" key={video[0]}>
                   <button className={`video-thumb thumb-${index + 1}`} aria-label={`Prévia de ${video[1]}`} onClick={() => notify("Este vídeo ainda não foi publicado")}><span className="play">▶</span><em>{video[3]}</em><i>{index === 0 ? "RENDA" : index === 1 ? "ESTUDOS" : "TECH"}</i></button>
-                  <div className="video-info"><span className={`avatar avatar-${index + 1}`}>NB</span><p><strong>{video[1]}</strong><small>{video[2]} · ainda não publicado</small></p><button aria-label="Mais opções">•••</button></div>
+                  <div className="video-info"><span className={`avatar avatar-${index + 1}`}>NB</span><p><strong>{video[1]}</strong><small>{video[2]} · ainda não publicado</small></p></div>
                 </article>
               ))}
             </div>
@@ -254,7 +245,7 @@ export function NexusHome() {
 
           <footer>
             <div><Logo /><p>{siteConfig.description}</p></div>
-            <form onSubmit={submitNewsletter}><label htmlFor="newsletter">Newsletter em preparação.</label><div><input id="newsletter" value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="seu@email.com" /><button aria-label="Verificar newsletter">→</button></div></form>
+            <p className="newsletter-status">Newsletter em preparação. As novidades serão publicadas aqui.</p>
           <nav aria-label="Links do rodapé"><a href="/explorar">Explorar</a><a href="/ia">Nexus IA</a><a href="/comunidades">Comunidades</a><a href="/termos">Termos</a><a href="/privacidade">Privacidade</a></nav>
             <small>© 2026 {siteConfig.name}. Feito para quem faz acontecer.</small>
           </footer>
@@ -263,16 +254,12 @@ export function NexusHome() {
 
           <nav className="mobile-nav" aria-label="Navegação móvel">{navItems.slice(0, 5).map((item, index) => <a className={index === 0 ? "active" : ""} href={item.href} key={item.id}><span>{item.icon}</span>{item.label === "Nexus IA" ? "IA" : item.label}</a>)}</nav>
 
-      {searchOpen && (
-        <div className="modal-backdrop" role="presentation" onMouseDown={() => setSearchOpen(false)}>
-          <section className="search-modal" role="dialog" aria-modal="true" aria-label="Busca global" onMouseDown={(event) => event.stopPropagation()}>
-            <div className="search-input"><span>⌕</span><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="O que você quer encontrar?" /><kbd onClick={() => setSearchOpen(false)}>ESC</kbd></div>
-            <div className="search-filters">{["Todos", "Vídeo", "Comunidade", "Produto", "Curso", "Site", "IA"].map((type) => <button className={searchType === type ? "active" : ""} onClick={() => setSearchType(type)} key={type}>{type}</button>)}</div>
-            <div className="search-results"><p>{query ? `Resultados para “${query}”` : "Descobertas para você"}</p>{results.length ? results.map((item) => <button key={item.title} onClick={() => { setSearchOpen(false); if (item.href) window.location.href = item.href; else notify(`${item.title} aberto em modo demo`); }}><span>{item.type.slice(0, 1)}</span><p><strong>{item.title}</strong><small>{item.type} · {item.detail}</small></p><i>↗</i></button>) : <div className="empty-search"><span>◇</span><strong>Nada encontrado</strong><small>Tente palavras como IA, curso ou marketplace.</small></div>}</div>
-          </section>
-        </div>
-      )}
-      {toast && <div className="toast"><span>✓</span>{toast}</div>}
+      <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} className="search-modal">
+            <div className="search-input"><span>⌕</span><input aria-label="Buscar no Nexus" autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="O que você quer encontrar?" /><button className="search-close" aria-label="Fechar busca" onClick={() => setSearchOpen(false)}>Esc</button></div>
+            <div className="search-filters">{["Todos", "Vídeo", "Comunidade", "Produto", "Curso", "Site", "IA"].map((type) => <button aria-pressed={searchType === type} className={searchType === type ? "active" : ""} onClick={() => setSearchType(type)} key={type}>{type}</button>)}</div>
+            <div className="search-results"><p>{query ? `Resultados para “${query}”` : "Descobertas para você"}</p>{results.length ? results.map((item) => <button key={item.title} onClick={() => { setSearchOpen(false); window.location.href = item.href; }}><span>{item.type.slice(0, 1)}</span><p><strong>{item.title}</strong><small>{item.type} · {item.detail}</small></p><i>↗</i></button>) : <div className="empty-search"><span>◇</span><strong>Nada encontrado</strong><small>Tente palavras como IA, curso ou marketplace.</small></div>}</div>
+      </SearchDialog>
+      {toast && <div className="toast" role="status"><span>✓</span>{toast}</div>}
     </div>
   );
 }

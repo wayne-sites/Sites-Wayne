@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getMarketplaceOrderById, getWayneOrderById, recordMarketplacePayment, transitionMarketplaceOrder, updateWayneOrder } from "@/lib/supabase-admin";
+import { getCrmProposalById, recordCrmProposalPayment } from "@/lib/server/crm-proposals";
 import { bodyWithinLimit, fetchSafeGet, requestId } from "@/lib/server/http";
 import { log } from "@/lib/server/logger";
 
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
     const providerPaymentId = String(payment.id || dataId);
     const paidCents = Math.round(Number(payment.transaction_amount || 0) * 100);
     const currencyMatches = payment.currency_id === "BRL";
+
     const wayneOrder = await getWayneOrderById(orderId);
     if (wayneOrder) {
       const amountMatches = paidCents === wayneOrder.amount_cents;
@@ -70,6 +72,17 @@ export async function POST(request: NextRequest) {
       } else if (payment.status === "cancelled" || payment.status === "rejected") {
         await updateWayneOrder(wayneOrder.id, { status: "cancelled", payment_status: payment.status, provider_payment_id: providerPaymentId });
       } else await updateWayneOrder(wayneOrder.id, { payment_status: payment.status || "pending", provider_payment_id: providerPaymentId });
+      return NextResponse.json({ received: true });
+    }
+
+    const crmProposal = await getCrmProposalById(orderId);
+    if (crmProposal) {
+      const amountMatches = paidCents === crmProposal.total_cents;
+      if (!amountMatches || !currencyMatches) {
+        log("error", "crm-proposal-webhook", "payment_mismatch", { requestId: requestIdentifier, proposalId: crmProposal.id, paymentId: payment.id, amountMatches, currencyMatches });
+        return NextResponse.json({ received: true });
+      }
+      await recordCrmProposalPayment(crmProposal.id, providerPaymentId, payment.status || "pending", paidCents, payment.currency_id || "");
       return NextResponse.json({ received: true });
     }
 
