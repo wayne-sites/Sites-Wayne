@@ -1,0 +1,37 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+const { PGlite } = await import(process.env.PGLITE_MODULE_PATH || "@electric-sql/pglite");
+const db = new PGlite();
+await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
+create schema auth; create table auth.users(id uuid primary key);
+grant usage on schema public,auth to service_role,authenticated,anon;
+create table public.crm_admins(user_id uuid primary key, role text);
+grant select on public.crm_admins to service_role;`);
+await db.exec(await readFile(new URL('../supabase/migrations/20260913213812_nexus_site_lab_v1.sql',import.meta.url),'utf8'));
+const owner=randomUUID(), creator=randomUUID(), other=randomUUID();
+await db.query('insert into auth.users values($1),($2),($3)',[owner,creator,other]);
+await db.query("insert into public.crm_admins values($1,'owner'),($2,'admin')",[owner,other]);
+const review={original:{files:[]},revised:{files:[]},changes:[],before:[],after:[]};
+const capture = async (user, consent, hash='a'.repeat(64)) => (await db.query('select public.nexus_capture_site_review($1,$2,$3,$4,$5,$6,$7) as id',[user,consent,'internal-review-v1',hash,'1.0.0','Test',JSON.stringify(review)])).rows[0].id;
+await db.exec('set role service_role');
+await assert.rejects(()=>capture(creator,false), /consent_required/);
+await assert.rejects(()=>capture(other,false), /consent_required/);
+const id=await capture(creator,true);
+assert.equal(await capture(creator,true),id);
+assert.notEqual(await capture(creator,true,'b'.repeat(64)),id);
+await capture(owner,false);
+await assert.rejects(()=>db.query('update public.nexus_site_reviews set name=$1 where id=$2',['changed',id]), /permission denied/);
+await db.query('delete from public.nexus_site_reviews where id=$1 and creator_user_id=$2',[id,other]);
+assert.equal((await db.query('select count(*)::int as n from public.nexus_site_reviews where id=$1',[id])).rows[0].n,1);
+for (const role of ['anon','authenticated']) {
+  await db.exec('reset role; set role '+role);
+  await assert.rejects(()=>db.query('select * from public.nexus_site_reviews'), /permission denied/);
+  await assert.rejects(()=>capture(creator,true), /permission denied/);
+  await assert.rejects(()=>db.query('delete from public.nexus_site_reviews'), /permission denied/);
+}
+await db.exec('reset role; set role service_role');
+await db.query('delete from public.nexus_site_reviews where id=$1 and creator_user_id=$2',[id,creator]);
+assert.equal((await db.query('select count(*)::int as n from public.nexus_site_reviews where id=$1',[id])).rows[0].n,0);
+await db.close();
+console.log('SITE_LAB_SQL_OK consent, owner/admin separation, immutable snapshots, deduplication, versions, private access and scoped revocation');

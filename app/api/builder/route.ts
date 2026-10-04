@@ -8,6 +8,7 @@ import { extractBuilderHtml, extractBuilderJson, validateBuilderProject } from "
 import { bodyWithinLimit, clientIp, fetchWithTimeout, isSameOrigin, requestId } from "@/lib/server/http";
 import { log } from "@/lib/server/logger";
 import { rateLimit } from "@/lib/server/rate-limit";
+import { captureBuilderReview } from "@/lib/server/site-lab-store";
 
 const PROJECT_TYPES = new Map([
   ["landing", "landing page comercial"],
@@ -325,6 +326,7 @@ export async function POST(request: NextRequest) {
     capabilities?: unknown;
     projectType?: unknown;
     visualStyle?: unknown;
+    ownerReview?: unknown;
   };
   try {
     body = await request.json();
@@ -459,8 +461,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const ownerReview = await captureBuilderReview(project, body.ownerReview === true);
     return NextResponse.json({
       project,
+      ownerReview,
       mode: "live",
       provider: provider.name,
       model: provider.model,

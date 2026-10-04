@@ -1,0 +1,176 @@
+.panel {
+  margin-top: 28px;
+  padding: 24px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 18px;
+  background: rgba(8,12,20,.74);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.header span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  letter-spacing: .18em;
+  opacity: .7;
+}
+
+.header h2 {
+  margin: 0 0 8px;
+  font-size: clamp(22px, 3vw, 34px);
+}
+
+.header p {
+  max-width: 780px;
+  margin: 0;
+  line-height: 1.6;
+  opacity: .72;
+}
+
+.header > strong {
+  white-space: nowrap;
+  font-size: 11px;
+  letter-spacing: .12em;
+  opacity: .82;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.form label {
+  display: grid;
+  gap: 7px;
+}
+
+.form label span {
+  font-size: 12px;
+  opacity: .68;
+}
+
+.form input,
+.form select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 10px;
+  background: rgba(255,255,255,.035);
+  color: inherit;
+  outline: none;
+}
+
+.form select option { color: #111; }
+
+.form button,
+.secretRow button,
+.commandBlock button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 10px;
+  background: rgba(255,255,255,.08);
+  color: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.form button:disabled { opacity: .5; cursor: default; }
+
+.error {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,120,120,.24);
+  border-radius: 10px;
+  background: rgba(120,20,20,.12);
+}
+
+.credential {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.warning {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid rgba(255,215,110,.18);
+  border-radius: 12px;
+  background: rgba(120,90,10,.08);
+}
+
+.warning span { opacity: .72; line-height: 1.5; }
+
+.secretRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.secretRow code,
+.commandBlock code,
+.commandBlock pre {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.secretRow code {
+  padding: 13px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 10px;
+  background: rgba(0,0,0,.22);
+}
+
+.commandBlock {
+  display: grid;
+  gap: 12px;
+}
+
+.commandBlock > div {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+  opacity: .76;
+}
+
+.commandBlock p { margin: 0; opacity: .72; }
+
+.commandBlock pre {
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 12px;
+  background: rgba(0,0,0,.3);
+  line-height: 1.55;
+}
+
+.flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  letter-spacing: .08em;
+  opacity: .62;
+}
+
+@media (max-width: 820px) {
+  .header { flex-direction: column; }
+  .form { grid-template-columns: 1fr; }
+  .secretRow { grid-template-columns: 1fr; }
+}

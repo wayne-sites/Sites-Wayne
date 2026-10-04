@@ -1,0 +1,74 @@
+{
+  "name": "nexus-worker",
+  "version": "0.3.2-preview",
+  "protocolVersion": "1",
+  "minimumNode": "22.13.0",
+  "entry": "index.mjs",
+  "doctor": "doctor.mjs",
+  "pairing": "pair.mjs",
+  "proof": {
+    "probe": "prove.mjs",
+    "windows": "prove.ps1",
+    "linux": "prove.sh",
+    "macos": "prove.sh",
+    "status": "release-candidate",
+    "claimsJobsByDefault": false,
+    "backendVerifiable": true,
+    "sessionStableId": true
+  },
+  "launchers": {
+    "windows": "start.ps1",
+    "linux": "start.sh",
+    "macos": "start.sh"
+  },
+  "installers": {
+    "windows": "install.ps1",
+    "linux": "install.sh",
+    "macos": "install.sh"
+  },
+  "files": [
+    "README.md",
+    "doctor.mjs",
+    "index.mjs",
+    "install.ps1",
+    "install.sh",
+    "pair.mjs",
+    "prove.mjs",
+    "prove.ps1",
+    "prove.sh",
+    "runtime.mjs",
+    "start.ps1",
+    "start.sh",
+    "verify.mjs",
+    "worker-manifest.json"
+  ],
+  "tools": [
+    "nexus-json",
+    "nexus-markdown"
+  ],
+  "capabilities": [
+    "data.json.validate",
+    "data.json.format",
+    "document.markdown.normalize",
+    "document.markdown.inspect"
+  ],
+  "security": {
+    "zeroCostOnly": true,
+    "shellExec": false,
+    "childProcess": false,
+    "eval": false,
+    "docker": false,
+    "browserAutomation": false,
+    "remotePlainHttp": false,
+    "tokenStoredByLauncher": false,
+    "tokenStoredByInstaller": false,
+    "pairingCodeStoredByLauncher": false,
+    "pairingCodeSingleUse": true,
+    "pairingMaxTtlSeconds": 600,
+    "proofCredentialRedacted": true,
+    "proofClaimsJobsByDefault": false,
+    "proofIdContainsCredential": false,
+    "autostart": false,
+    "gatewayStoredLocally": true
+  }
+}
