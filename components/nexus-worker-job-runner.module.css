@@ -1,0 +1,142 @@
+.panel {
+  margin-top: 24px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  padding: 20px;
+  background: rgba(6,12,20,.72);
+  display: grid;
+  gap: 18px;
+}
+
+.header {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.header span,
+.header strong,
+.form label > span,
+.statusRow span,
+.meta span {
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  opacity: .72;
+}
+
+.header h2 {
+  margin: 6px 0;
+  font-size: 24px;
+}
+
+.header p {
+  margin: 0;
+  opacity: .78;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.form label {
+  display: grid;
+  gap: 7px;
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+.form select,
+.form textarea {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 12px;
+  background: rgba(255,255,255,.04);
+  color: inherit;
+  padding: 12px 14px;
+}
+
+.form textarea {
+  min-height: 130px;
+  resize: vertical;
+  font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.form button {
+  grid-column: 1 / -1;
+  justify-self: start;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 18px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.form button:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.result {
+  border-top: 1px solid rgba(255,255,255,.1);
+  padding-top: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.statusRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.statusRow strong[data-status="succeeded"] { color: #9ff7bd; }
+.statusRow strong[data-status="failed"],
+.statusRow strong[data-status="cancelled"] { color: #ffaaa5; }
+.statusRow strong[data-status="running"],
+.statusRow strong[data-status="queued"] { color: #ffe38a; }
+
+.meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.meta div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.meta code {
+  overflow-wrap: anywhere;
+}
+
+.result pre {
+  margin: 0;
+  overflow: auto;
+  border-radius: 12px;
+  padding: 14px;
+  background: rgba(0,0,0,.28);
+  font-size: 13px;
+}
+
+.error {
+  border: 1px solid rgba(255,120,120,.28);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(255,80,80,.08);
+}
+
+@media (max-width: 760px) {
+  .header { flex-direction: column; }
+  .form, .meta { grid-template-columns: 1fr; }
+}

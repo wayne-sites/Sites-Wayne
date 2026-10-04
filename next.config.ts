@@ -25,7 +25,12 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/(.*)", headers: securityHeaders }];
+    return [
+      { source: "/(.*)", headers: securityHeaders },
+      { source: "/studio/wayne/JarvisOS", headers: [
+        { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=(), payment=(self), on-device-speech-recognition=(self)" },
+      ] },
+    ];
   },
 };
 
