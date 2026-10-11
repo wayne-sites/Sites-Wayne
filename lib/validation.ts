@@ -4,6 +4,15 @@ export function isUuid(value: unknown): value is string {
   return typeof value === "string" && UUID_PATTERN.test(value);
 }
 
+export const BLOCKED_PATTERNS = [
+  /\\brm\\s+-rf\\b/i, /\\bformat\\b/i, /\\bshutdown\\b/i, /\\breg\\s+delete\\b/i,
+  /\\bdel\\s+/[sq]\\b/i, /\\bpowershell\\b/i, /\\bcmd(?:\\.exe)?\\b/i,
+];
+
+export function containsBlockedContent(text: string): boolean {
+  return BLOCKED_PATTERNS.some(pattern => pattern.test(text));
+}
+
 export type MarketplaceCartItem = { product_id: string; quantity: number };
 
 export function parseMarketplaceCart(value: unknown): { ok: true; items: MarketplaceCartItem[] } | { ok: false } {
